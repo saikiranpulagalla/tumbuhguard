@@ -79,7 +79,7 @@ describe('Tier A protocol/state', () => {
   });
 
   it('P14 calculate before reference completion rejected', () => {
-    expect(() => calculateSession(createDemoSession())).toThrow(/NOT_READY_TO_CALCULATE/);
+    expect(() => calculateSession(createDemoSession())).toThrow(expect.objectContaining({ code: 'INVALID_TRANSITION' }));
   });
 
   it('P15 invalid reference suppresses agreement assessment', () => {
