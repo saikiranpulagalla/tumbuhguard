@@ -1,4 +1,5 @@
 import { afterEach, expect, it } from 'vitest';
+import Dexie from 'dexie';
 import { TumbuhGuardDB } from '../../src/data/db';
 import { SchemaIncompatibleError, SessionRepository } from '../../src/data/repositories/session-repository';
 import { sha256Json } from '../../src/data/transactions/hash';
@@ -17,12 +18,15 @@ it('rejects an unknown application schema marker instead of silently migrating i
 
 it('maps a newer physical IndexedDB version to a safe schema incompatibility failure', async () => {
   const name=`test-${crypto.randomUUID()}`;
-  await new Promise<void>((resolve,reject)=>{
-    const request=indexedDB.open(name,999);
-    request.onupgradeneeded=()=>{ if (!request.result.objectStoreNames.contains('future')) request.result.createObjectStore('future'); };
-    request.onsuccess=()=>{ request.result.close(); resolve(); };
-    request.onerror=()=>reject(request.error);
-  });
+  class FutureDB extends Dexie {
+    constructor() {
+      super(name);
+      this.version(2).stores({ future: 'id' });
+    }
+  }
+  const future = new FutureDB();
+  await future.open();
+  future.close();
   const database = new TumbuhGuardDB(name); databases.push(database);
   const repository = new SessionRepository(database);
   await expect(repository.list()).rejects.toMatchObject({ code:'SCHEMA_INCOMPATIBLE', storedVersion:'INDEXEDDB_NEWER' });

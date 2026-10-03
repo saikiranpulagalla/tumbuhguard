@@ -24,6 +24,20 @@ export class SchemaIncompatibleError extends DomainError {
 export class SessionRepository {
   constructor(private readonly database: TumbuhGuardDB) {}
 
+  private async assertKnownPhysicalStores(): Promise<void> {
+    const stores = await new Promise<readonly string[]>((resolve, reject) => {
+      const request = indexedDB.open(this.database.name);
+      request.onsuccess = () => {
+        const names = Array.from(request.result.objectStoreNames);
+        request.result.close();
+        resolve(names);
+      };
+      request.onerror = () => reject(request.error);
+    });
+    const known = new Set(['sessions', 'audit', 'meta']);
+    if (stores.some(store => !known.has(store))) throw new SchemaIncompatibleError('INDEXEDDB_NEWER');
+  }
+
   private async assertProtocolSnapshotHash(session: Session): Promise<void> {
     if ((await sha256Json(session.protocolSnapshot)) !== session.protocolHash) {
       throw new DomainError('STORED_RECORD_INVALID', 'Protocol snapshot hash does not match the stored protocol snapshot');
@@ -32,6 +46,7 @@ export class SessionRepository {
 
   private async assertSchemaCompatibility(): Promise<void> {
     try {
+      await this.assertKnownPhysicalStores();
       const meta = await this.database.meta.get(DB_SCHEMA_META_KEY);
       if (meta) {
         const decision = classifySchemaCompatibility(meta.value, DB_SCHEMA_VERSION, true);
