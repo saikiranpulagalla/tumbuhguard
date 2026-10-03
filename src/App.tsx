@@ -1,20 +1,27 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AppShell } from './app/AppShell';
+import { registerUpdateController, type UpdateController } from './app/update-controller';
+import { canApplyServiceWorkerUpdate } from './app/update-policy';
 import { calculateSession } from './app/workflow';
 import { StateRail } from './components/StateRail';
 import { SessionRepository, StaleRevisionError } from './data/repositories/session-repository';
 import { db } from './data/db';
+import { friendlyDomainError } from './domain/errors';
+import { resultIsCurrent } from './domain/protocol/invariants';
 import { transition } from './domain/session/transition';
+import { createRestandardizationSession } from './domain/session/restandardization';
 import { selectBlindRoundSubjects } from './domain/session/selectors';
 import type { MeasurementPosition } from './domain/protocol/profile';
 import type { SessionEvent } from './domain/session/events';
-import type { Session as SessionModel } from './domain/session/state';
-import { createDemoSession } from './fixtures/demo';
+import type { Observation, Session as SessionModel } from './domain/session/state';
+import { createCadreCFastDemoSession, createDemoSession, referenceFixtureMeasurements } from './fixtures/demo';
+import { HomePanel } from './features/home/HomePanel';
 import { SetupPanel } from './features/setup/SetupPanel';
 import { RoundPanel } from './features/round-one/RoundPanel';
 import { ReferencePanel } from './features/reference/ReferencePanel';
 import { EvidencePanel } from './features/evidence/EvidencePanel';
 import { ResultsPanel } from './features/results/ResultsPanel';
+import { RemediationPanel } from './features/remediation/RemediationPanel';
 import { createSessionBackup } from './data/export/session-export';
 
 const repository = new SessionRepository(db);
@@ -22,30 +29,69 @@ const repository = new SessionRepository(db);
 function downloadJson(name: string, value: unknown) {
   const blob = new Blob([JSON.stringify(value, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = name; a.click();
+  const anchor = document.createElement('a');
+  anchor.href = url; anchor.download = name; anchor.click();
   URL.revokeObjectURL(url);
 }
 
 export default function App() {
   const [session, setSession] = useState<SessionModel | null>(null);
+  const [showHome, setShowHome] = useState(true);
   const [message, setMessage] = useState('Loading local session…');
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [otherTab, setOtherTab] = useState(false);
+  const [offlineReady, setOfflineReady] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
   const channelRef = useRef<BroadcastChannel | null>(null);
+  const updateControllerRef = useRef<UpdateController | null>(null);
 
   useEffect(() => {
     void (async () => {
-      const existing = await repository.get('demo-standardization-001');
-      if (existing) { setSession(existing); setMessage('Recovered local session.'); }
-      else { const seed = createDemoSession(); await repository.create(seed); setSession(seed); setMessage('Synthetic demo ready.'); }
-      try { await navigator.storage?.persist?.(); } catch { /* optional */ }
+      try {
+        const local = await repository.list();
+        const existing = local[0];
+        if (existing) {
+          setSession(existing);
+          setShowHome(existing.state === 'DRAFT' && existing.id === 'demo-standardization-001' && !existing.parentSessionId);
+          setMessage('Recovered latest local session.');
+        } else {
+          const seed = createDemoSession();
+          await repository.create(seed);
+          setSession(seed);
+          setShowHome(true);
+          setMessage('Synthetic competition setup ready.');
+        }
+        try { await navigator.storage?.persist?.(); } catch { /* optional permission */ }
+      } catch (error) {
+        setLoadError(friendlyDomainError(error));
+        setMessage('Local recovery requires review.');
+      }
     })();
+
+    const updateConnectivity=()=>setIsOffline(!navigator.onLine);
+    window.addEventListener('online',updateConnectivity);
+    window.addEventListener('offline',updateConnectivity);
+
+    if ('serviceWorker' in navigator) {
+      if (navigator.serviceWorker.controller) setOfflineReady(true);
+      void navigator.serviceWorker.ready.then(() => setOfflineReady(true)).catch(() => undefined);
+      updateControllerRef.current = registerUpdateController({
+        onNeedRefresh: () => setUpdateAvailable(true),
+        onOfflineReady: () => setOfflineReady(true),
+      });
+    }
+
     if ('BroadcastChannel' in window) {
       const channel = new BroadcastChannel('tumbuhguard-session');
       channel.onmessage = () => setOtherTab(true);
       channelRef.current = channel;
-      return () => channel.close();
     }
+    return () => {
+      window.removeEventListener('online',updateConnectivity);
+      window.removeEventListener('offline',updateConnectivity);
+      channelRef.current?.close();
+    };
   }, []);
 
   const apply = async (event: SessionEvent, label: string) => {
@@ -60,7 +106,7 @@ export default function App() {
       if (error instanceof StaleRevisionError) {
         setMessage('STALE_REVISION: another tab saved first. Reloading latest local session.');
         const latest = await repository.get(session.id); if (latest) setSession(latest);
-      } else setMessage(error instanceof Error ? error.message : 'Save failed');
+      } else setMessage(friendlyDomainError(error));
     }
   };
 
@@ -70,59 +116,111 @@ export default function App() {
     try {
       const next = calculateSession(session);
       await repository.saveCAS(next, expected, 'CALCULATE_RESULT');
-      setSession(next); setMessage('Deterministic result saved.');
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Calculation failed'); }
+      setSession(next); setMessage('Deterministic QA result saved.');
+    } catch (error) { setMessage(friendlyDomainError(error)); }
   };
 
   const reset = async () => {
-    await db.transaction('rw', db.sessions, db.audit, async () => { await db.sessions.clear(); await db.audit.clear(); });
-    const seed=createDemoSession(); await repository.create(seed); setSession(seed); setMessage('Demo reset to deterministic synthetic setup.');
+    await db.transaction('rw', db.sessions, db.audit, db.meta, async () => {
+      await db.sessions.clear(); await db.audit.clear(); await db.meta.clear();
+    });
+    const seed=createDemoSession();
+    await repository.create(seed);
+    setSession(seed); setShowHome(true); setLoadError(null); setMessage('Demo reset to deterministic synthetic setup.');
+  };
+
+  const startAssessment = async () => {
+    if (!session) return;
+    const now=new Date().toISOString();
+    const base=createDemoSession('cadre-a-good',`assessment-${crypto.randomUUID()}`);
+    const next={...base,createdAt:now,updatedAt:now};
+    await repository.create(next); setSession(next); setShowHome(false); setMessage('New synthetic assessment created.');
+  };
+
+  const runFastDemo = async () => {
+    const base=createCadreCFastDemoSession();
+    const now=new Date().toISOString();
+    const seed={...base,createdAt:now,updatedAt:now};
+    await db.transaction('rw', db.sessions, db.audit, async () => {
+      await db.sessions.delete(seed.id);
+      await db.audit.where('sessionId').equals(seed.id).delete();
+    });
+    await repository.create(seed);
+    setSession(seed); setShowHome(false); setLoadError(null);
+    setMessage('Cadre C 90-sec demo loaded at blinded Round 2: enter the final S10 repeat (95.9 cm).');
   };
 
   const exportBackup = async () => { if (session) downloadJson(`tumbuhguard-${session.id}.json`, await createSessionBackup(session)); };
 
-  const createRestandardization = async () => {
-    if (!session) return;
-    const expected = session.revision;
-    const closed = transition(session, { type: 'CLOSE_SESSION' });
-    await repository.saveCAS(closed, expected, 'CLOSE_FOR_RESTANDARDIZATION');
-    const base = createDemoSession();
-    const now = new Date().toISOString();
-    const next: SessionModel = { ...base, id: crypto.randomUUID(), parentSessionId: session.id, createdAt: now, updatedAt: now };
-    await repository.create(next);
-    setSession(next);
-    setMessage('New re-standardization session created; parent session remains closed.');
-    channelRef.current?.postMessage({ sessionId: session.id, revision: closed.revision });
+  const loadSyntheticReference = async () => {
+    if (!session || session.state!=='REFERENCE_OPEN' || session.id!=='demo-cadre-c-fast') return;
+    const expected=session.revision;
+    try {
+      let next=session;
+      for (const measurement of referenceFixtureMeasurements(session,'cadre-c-systematic-low')) {
+        next=transition(next,{type:'RECORD_MEASUREMENT',measurement:{...measurement,id:crypto.randomUUID(),revision:next.revision+1,recordedAt:new Date().toISOString()}});
+      }
+      await repository.saveCAS(next,expected,'LOAD_SYNTHETIC_REFERENCE_FIXTURE');
+      setSession(next); setMessage('Synthetic qualified-reference readings loaded for the 90-sec demo.');
+    } catch(error) { setMessage(friendlyDomainError(error)); }
   };
 
-  if (!session) return <AppShell><section className="panel"><p>{message}</p></section></AppShell>;
+  const createRestandardization = async () => {
+    if (!session) return;
+    try {
+      const now=new Date().toISOString();
+      const next=createRestandardizationSession(session,crypto.randomUUID(),now);
+      await repository.create(next);
+      setSession(next); setShowHome(false);
+      setMessage(`New re-standardization session linked to ${session.id}. Parent session was not overwritten.`);
+      channelRef.current?.postMessage({ sessionId: session.id, revision: session.revision });
+    } catch(error) { setMessage(friendlyDomainError(error)); }
+  };
 
-  const activeRows = session.stations.map(st => {
-    const subject=session.subjects.find(s=>s.id===st.subjectId)!;
-    return {subjectId:subject.id,subjectLabel:subject.syntheticLabel,stationId:st.id,stationLabel:st.label,expectedPosition:st.expectedPosition};
+  const applyUpdate=async()=>{
+    await updateControllerRef.current?.apply();
+    setUpdateAvailable(false);
+  };
+
+  if (loadError && !session) return <AppShell offlineReady={offlineReady} isOffline={isOffline}><section className="panel callout"><h2>Local session needs recovery</h2><p>{loadError}</p><button className="primary" onClick={()=>void reset()}>Reset synthetic demo data</button></section></AppShell>;
+  if (!session) return <AppShell offlineReady={offlineReady} isOffline={isOffline}><section className="panel"><p>{message}</p></section></AppShell>;
+  if (showHome) return <AppShell offlineReady={offlineReady} isOffline={isOffline}>{updateAvailable&&<div className="update-banner" role="status"><span>Application update available.</span><button onClick={()=>void applyUpdate()}>Apply update</button></div>}{otherTab&&<div className="tab-warning" role="status">Another TumbuhGuard tab changed a local session. CAS protection is active; stale writes will be rejected. <button onClick={()=>setOtherTab(false)}>Dismiss</button></div>}<HomePanel offlineReady={offlineReady} isOffline={isOffline} onStart={()=>void startAssessment()} onDemo={()=>void runFastDemo()}/></AppShell>;
+
+  const activeSubjects=session.subjects.filter(subject=>subject.status==='ACTIVE');
+  const activeRows = session.stations.filter(station=>activeSubjects.some(subject=>subject.id===station.subjectId)).map(station => {
+    const subject=session.subjects.find(item=>item.id===station.subjectId)!;
+    return {subjectId:subject.id,subjectLabel:subject.syntheticLabel,stationId:station.id,stationLabel:station.label,expectedPosition:station.expectedPosition};
   });
   const blindRows = selectBlindRoundSubjects(session);
   const evidenceComplete = session.observations.length >= 3;
 
   const recordTrainee=(round:1|2)=>(subjectId:string, stationId:string, valueCm:number, position:MeasurementPosition) => void apply({type:'RECORD_MEASUREMENT',measurement:{id:crypto.randomUUID(),sessionId:session.id,measurerId:session.trainee.id,subjectId,stationId,round,valueCm,position,revision:session.revision+1,recordedAt:new Date().toISOString()}},`RECORD_ROUND_${round}`);
-  const recordReference=(subjectId:string,stationId:string,round:1|2,valueCm:number) => { const station=session.stations.find(s=>s.id===stationId)!; void apply({type:'RECORD_MEASUREMENT',measurement:{id:crypto.randomUUID(),sessionId:session.id,measurerId:session.reference.id,subjectId,stationId,round,valueCm,position:station.expectedPosition,revision:session.revision+1,recordedAt:new Date().toISOString()}},'RECORD_REFERENCE'); };
+  const recordReference=(subjectId:string,stationId:string,round:1|2,valueCm:number) => { const station=session.stations.find(item=>item.id===stationId)!; void apply({type:'RECORD_MEASUREMENT',measurement:{id:crypto.randomUUID(),sessionId:session.id,measurerId:session.reference.id,subjectId,stationId,round,valueCm,position:station.expectedPosition,revision:session.revision+1,recordedAt:new Date().toISOString()}},'RECORD_REFERENCE'); };
+  const addObservation=(item:string,result:Observation['result'],note?:string)=>{
+    const base={id:crypto.randomUUID(),measurerId:session.trainee.id,item,result};
+    const observation:Observation=note?.trim()?{...base,note:note.trim()}:base;
+    void apply({type:'ADD_OBSERVATION',observation},'ADD_OBSERVATION');
+  };
 
-  return <AppShell>
-    {otherTab && <div className="tab-warning">Another TumbuhGuard tab changed this session. CAS protection is active; stale writes will be rejected. <button onClick={()=>setOtherTab(false)}>Dismiss</button></div>}
-    <div className="toolbar"><span>{message}</span><div><button className="ghost" onClick={exportBackup}>Export JSON backup</button><button className="ghost" onClick={reset}>Reset demo</button></div></div>
+  const updateSafe=canApplyServiceWorkerUpdate(showHome,session.state);
+
+  return <AppShell offlineReady={offlineReady} isOffline={isOffline}>
+    {updateAvailable && <div className="update-banner" role="status"><span>{updateSafe?'Application update available.':'Application update available; reload is deferred while this assessment is active.'}</span><button disabled={!updateSafe} onClick={()=>void applyUpdate()}>Apply update</button></div>}
+    {otherTab && <div className="tab-warning" role="status">Another TumbuhGuard tab changed a local session. CAS protection is active; stale writes will be rejected. <button onClick={()=>setOtherTab(false)}>Dismiss</button></div>}
+    <div className="toolbar"><span aria-live="polite">{message}</span><div><button className="ghost" onClick={exportBackup}>Export JSON backup</button><button className="ghost" onClick={()=>void reset()}>Reset demo</button></div></div>
     <StateRail state={session.state}/>
 
-    {session.state==='DRAFT' && <SetupPanel session={session} onValidate={()=>void apply({type:'VALIDATE_SETUP'},'VALIDATE_SETUP')}/>} 
-    {session.state==='SETUP_VALID' && <section className="panel callout"><h2>Setup valid</h2><p>Protocol snapshot, 10 synthetic subjects, station assignments and device provenance are complete.</p><button className="primary" onClick={()=>void apply({type:'OPEN_ROUND_1'},'OPEN_ROUND_1')}>Open Round 1</button></section>}
-    {session.state==='ROUND1_OPEN' && <RoundPanel session={session} round={1} rows={activeRows} onRecord={recordTrainee(1)} onLock={()=>void apply({type:'LOCK_ROUND_1'},'LOCK_ROUND_1')}/>} 
-    {session.state==='ROUND1_LOCKED' && <section className="panel callout"><h2>Round 1 locked</h2><p>Normal editing is blocked. Round 2 opens without exposing Round‑1 values.</p><button className="primary" onClick={()=>void apply({type:'OPEN_ROUND_2'},'OPEN_ROUND_2')}>Open blinded Round 2</button></section>}
-    {session.state==='ROUND2_OPEN' && <RoundPanel session={session} round={2} rows={blindRows} blinded onRecord={recordTrainee(2)} onLock={()=>void apply({type:'LOCK_ROUND_2'},'LOCK_ROUND_2')}/>} 
+    {session.state==='DRAFT' && <SetupPanel session={session} onValidate={()=>void apply({type:'VALIDATE_SETUP'},'VALIDATE_SETUP')}/>}
+    {session.state==='SETUP_VALID' && <section className="panel callout"><h2>Setup valid</h2><p>Protocol snapshot, 10 synthetic subjects, age composition, station assignments and device provenance are complete.</p><button className="primary" onClick={()=>void apply({type:'OPEN_ROUND_1'},'OPEN_ROUND_1')}>Open Round 1</button></section>}
+    {session.state==='ROUND1_OPEN' && <RoundPanel session={session} round={1} rows={activeRows} onRecord={recordTrainee(1)} onLock={()=>void apply({type:'LOCK_ROUND_1'},'LOCK_ROUND_1')}/>}
+    {session.state==='ROUND1_LOCKED' && <section className="panel callout"><h2>Round 1 locked</h2><p>Normal editing is blocked. Round 2 opens without exposing Round-1 values.</p><button className="primary" onClick={()=>void apply({type:'OPEN_ROUND_2'},'OPEN_ROUND_2')}>Open blinded Round 2</button></section>}
+    {session.state==='ROUND2_OPEN' && <RoundPanel session={session} round={2} rows={blindRows} blinded onRecord={recordTrainee(2)} onLock={()=>void apply({type:'LOCK_ROUND_2'},'LOCK_ROUND_2')}/>}
     {session.state==='ROUND2_LOCKED' && <section className="panel callout"><h2>Trainee rounds locked</h2><p>Proceed to independent qualified-reference repeat measurements.</p><button className="primary" onClick={()=>void apply({type:'OPEN_REFERENCE'},'OPEN_REFERENCE')}>Open reference measurements</button></section>}
-    {session.state==='REFERENCE_OPEN' && <ReferencePanel session={session} onRecord={recordReference} onLock={()=>void apply({type:'LOCK_REFERENCE'},'LOCK_REFERENCE')}/>} 
-    {session.state==='REFERENCE_LOCKED' && <><EvidencePanel session={session} onAdd={(item,result)=>void apply({type:'ADD_OBSERVATION',observation:{id:crypto.randomUUID(),measurerId:session.trainee.id,item,result}},'ADD_OBSERVATION')}/><section className="panel compact"><button className="primary" disabled={!evidenceComplete} onClick={()=>void apply({type:'MARK_READY'},'MARK_READY')}>Lock evidence & prepare calculation</button></section></>}
-    {session.state==='READY_TO_CALCULATE' && <section className="panel callout"><h2>Ready to calculate</h2><p>All active paired measurements and evidence are locked for this revision.</p><button className="primary" onClick={saveCalculated}>Calculate deterministic QA result</button></section>}
-    {session.state==='RESULT_VALID' && <ResultsPanel session={session} onRemediate={()=>void apply({type:'START_REMEDIATION'},'START_REMEDIATION')} onClose={()=>void apply({type:'CLOSE_SESSION'},'CLOSE_SESSION')}/>} 
-    {session.state==='REMEDIATION' && <section className="panel callout"><span className="kicker">Remediation</span><h2>Review technique, then create a new re-standardization session.</h2><p>This session remains intact. A re-standardization attempt must be a new session linked with <code>parentSessionId</code>; old measurements are never reopened.</p><button className="primary" onClick={()=>void createRestandardization()}>Create re-standardization session</button><button onClick={()=>void apply({type:'CLOSE_SESSION'},'CLOSE_SESSION')}>Close without re-standardizing</button></section>}
-    {session.state==='CLOSED' && <section className="panel callout"><h2>Session closed</h2><p>The assessment record is retained locally with application-level revision history and integrity checks.</p><button onClick={exportBackup}>Export signed-hash JSON backup</button></section>}
+    {session.state==='REFERENCE_OPEN' && <ReferencePanel session={session} onRecord={recordReference} onLock={()=>void apply({type:'LOCK_REFERENCE'},'LOCK_REFERENCE')} {...(session.id==='demo-cadre-c-fast'?{onLoadSyntheticFixture:()=>void loadSyntheticReference()}:{})}/>}
+    {session.state==='REFERENCE_LOCKED' && <><EvidencePanel session={session} onAdd={addObservation}/><section className="panel compact"><button className="primary" disabled={!evidenceComplete} onClick={()=>void apply({type:'MARK_READY'},'MARK_READY')}>Lock evidence & prepare calculation</button></section></>}
+    {session.state==='READY_TO_CALCULATE' && <section className="panel callout"><h2>Ready to calculate</h2><p>All active paired measurements and evidence are locked for this revision.</p><button className="primary" onClick={()=>void saveCalculated()}>Calculate deterministic QA result</button></section>}
+    {session.state==='RESULT_VALID' && (!resultIsCurrent(session)?<section className="panel callout"><h2>Result stale</h2><p>The saved result does not match this session revision and will not be displayed as current.</p></section>:<ResultsPanel session={session} onRemediate={()=>void apply({type:'START_REMEDIATION'},'START_REMEDIATION')} onClose={()=>void apply({type:'CLOSE_SESSION'},'CLOSE_SESSION')}/>)}
+    {session.state==='REMEDIATION' && <RemediationPanel session={session} onAddNote={text=>void apply({type:'ADD_REMEDIATION_NOTE',note:{id:crypto.randomUUID(),text,createdAt:new Date().toISOString()}},'ADD_REMEDIATION_NOTE')} onCreate={()=>void createRestandardization()} onClose={()=>void apply({type:'CLOSE_SESSION'},'CLOSE_SESSION')}/>}
+    {session.state==='CLOSED' && <section className="panel callout"><h2>Session closed</h2><p>The assessment record is retained locally with application-level revision history and integrity checks.</p><button onClick={exportBackup}>Export hashed JSON backup</button></section>}
   </AppShell>;
 }

@@ -1,9 +1,15 @@
 import { test, expect } from '@playwright/test';
+import { loadCadreCFastDemo } from './helpers';
 
-// This acceptance spec intentionally checks UI disclosure rather than claiming cryptographic secrecy.
-test('Round-2 screen never renders Round-1 values in the normal workflow', async ({ page }) => {
-  await page.goto('/');
-  // Full data-entry journey is intentionally explicit in the UI; fixture-assisted navigation can be added
-  // only after the dependency/browser harness is available. The invariant is also covered by domain DTO tests.
-  await expect(page.locator('body')).not.toContainText('Round-1 values are shown');
+test('Round-2 normal workflow never exposes Round-1 values, including browser-back/hash navigation', async ({ page }) => {
+  await loadCadreCFastDemo(page);
+  await expect(page.getByText('Round-1 values are intentionally unavailable in this entry workflow.')).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('95.8');
+  await expect(page.getByRole('heading',{name:'First measurement round'})).toHaveCount(0);
+
+  await page.evaluate(() => history.pushState({probe:true},'',`${location.pathname}#probe`));
+  await page.goBack();
+  await expect(page.getByRole('heading',{name:'Blinded repeat measurement'})).toBeVisible();
+  await expect(page.locator('body')).not.toContainText('95.8');
+  await expect(page.getByRole('heading',{name:'First measurement round'})).toHaveCount(0);
 });
