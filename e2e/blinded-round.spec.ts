@@ -36,4 +36,3 @@ test('BL09 a second normal Round-2 tab remains blinded', async ({ page, context 
   await expect(second.locator('body')).not.toContainText('95.8');
   await expect(second.getByRole('heading',{name:'First measurement round'})).toHaveCount(0);
 });
-});
