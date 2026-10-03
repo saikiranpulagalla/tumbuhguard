@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.9.0",
   "type": "module",
-  "engines": { "node": ">=24 <25" },
+  "engines": {
+    "node": ">=24 <25"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -17,25 +19,25 @@
     "check": "npm run typecheck && npm run test && npm run build && npm run verify:fixtures && npm run release:check"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "latest",
-    "dexie": "^4.0.11",
-    "react": "^19.1.1",
-    "react-dom": "^19.1.1",
-    "vite": "^7.1.7",
-    "vite-plugin-pwa": "^1.0.3",
-    "zod": "^4.1.11"
+    "@vitejs/plugin-react": "5.0.4",
+    "dexie": "4.0.11",
+    "react": "19.1.1",
+    "react-dom": "19.1.1",
+    "vite": "7.1.7",
+    "vite-plugin-pwa": "1.0.3",
+    "zod": "4.1.11"
   },
   "devDependencies": {
-    "@playwright/test": "^1.63.0",
-    "@testing-library/jest-dom": "^6.8.0",
-    "@testing-library/react": "^16.3.0",
-    "@types/node": "^24.5.2",
-    "@types/react": "^19.1.16",
-    "@types/react-dom": "^19.1.9",
-    "fake-indexeddb": "^6.2.2",
-    "jsdom": "^27.0.0",
-    "tsx": "^4.20.5",
-    "typescript": "^5.9.2",
-    "vitest": "^4.0.0"
+    "@playwright/test": "1.63.0",
+    "@testing-library/jest-dom": "6.8.0",
+    "@testing-library/react": "16.3.0",
+    "@types/node": "24.5.2",
+    "@types/react": "19.1.16",
+    "@types/react-dom": "19.1.9",
+    "fake-indexeddb": "6.2.2",
+    "jsdom": "27.0.0",
+    "tsx": "4.20.5",
+    "typescript": "5.9.2",
+    "vitest": "4.0.0"
   }
 }
