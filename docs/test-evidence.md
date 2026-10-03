@@ -318,3 +318,13 @@ Playwright smoke remains **BLOCKED**. Diagnosis: interrupted preview runs left o
 Commit `a3b8689` adds `scripts/serve-dist.mjs`, a Node-built static server limited to `dist/`. It returned HTTP `200` for `/`, the manifest, `sw.js`, and the built hashed JS asset; a traversal attempt could not escape `dist` (`404` after URL normalization). This bypasses the non-responsive Vite-preview path.
 
 The B00 Playwright run reached the new server and then reported its actual blocker: Playwright Chromium headless-shell revision `1243` is not installed. A bounded `playwright install chromium` attempt did not finish, and the required executable remains absent. Browser cases remain **BLOCKED**, not passed.
+
+## Phase 9 — production browser matrix closure
+
+Executed on 2026-10-03 with Node `v24.19.0`, npm `10.9.0`, Playwright `1.63.0`, and system Microsoft Edge `154.0.4258.53` through Playwright's `msedge` channel (headless, one worker, zero retries). Managed Playwright Chromium remains unavailable; this is explicitly local system-Edge evidence.
+
+The deterministic `dist/` harness ran the complete workflow/persistence browser set with no unexpected page errors: `15 passed` in `35.5s`. The named B00–B12 coverage is green: production shell; Round-2 Back/Forward/refresh/reopen/second-tab blinding; post-assessment evidence visibility; two-tab CAS; reset stale-tab safety; rapid double-click and Enter measurement submission; single and two-tab re-standardization creation. The server exited when the suite completed (no listener remained on the configured port).
+
+Browser evidence added in commits `27cd473` (duplicate-safe Enter), `9126463` (serialized linked-session creation and B11/B12), and `ce37072` (post-assessment evidence assertion). B06 proves the deliberate phase boundary: Cadre C's `73.0 cm` Round 1, `72.9 cm` Round 2, and `74.2 cm` reference reading are absent during blinded entry and visible in Results/Evidence afterward. B11 proves exactly one empty DRAFT child with the correct `parentSessionId`; B12 proves the stale tab receives `STALE_REVISION` and cannot create a second child.
+
+The three consecutive full unit runs after these changes each passed: `20` files, `124` passing tests, and `2` intentional external-oracle skips. Production build generated the PWA manifest, `sw.js`, Workbox runtime, and local assets. This is build-generation evidence only; offline behavior remains unverified.

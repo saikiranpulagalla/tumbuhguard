@@ -440,3 +440,11 @@ The earlier source-review observation at section 16 is resolved by a dedicated `
 Unit tests verify the exact DTO allow-list, absence of Round-1 values and related accessibility metadata in the Round-2 DOM, and state-machine rejection of entering Round 2 before Round 1 is locked or reopening Round 1 while Round 2 is open. The safe claim remains: **“Round-1 values are not exposed in the normal Round-2 entry workflow.”**
 
 Browser tests for Back, Forward, refresh, reopen, and a second tab were extended but were not completed in the bounded local Playwright invocation; they remain **BLOCKED** pending completed browser execution. This is workflow-level blinding, not cryptographic secrecy.
+
+## Phase 9 resolution — browser workflow and lineage evidence
+
+The previously blocked browser checks were executed against the actual production `dist/` bundle using Playwright `1.63.0` and system Microsoft Edge `154.0.4258.53` (headless, one worker, zero retries). The deterministic local server was used because Vite preview was non-responsive in the earlier Windows transport; its process exited after the suite.
+
+Round-2 Back, Forward, refresh, close/reopen, and second-tab checks passed without exposing Round-1 values. Post-assessment evidence intentionally displayed the recorded Round-1, Round-2, and reference values, confirming that blinding is scoped to entry rather than historical evidence review. Two-tab CAS, reset stale-tab protection, rapid mouse/keyboard measurement submission, and single/two-tab re-standardization races also passed. The latter introduced a focused in-flight UI guard so two rapid local activations cannot overwrite the newly opened child-session view; persistence CAS remains the cross-tab correctness mechanism.
+
+This resolves the workflow-level browser blockers documented above. It does not claim cryptographic secrecy, full offline behavior, accessibility conformance, responsive validation, or external Annex-13/DHS oracle parity.
