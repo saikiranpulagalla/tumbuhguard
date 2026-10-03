@@ -62,6 +62,9 @@ test('D05/D06 results survive refresh and browser page close/reopen', async ({ p
   await page.reload();
   await expect(page.getByRole('heading',{name:'Standardization evidence'})).toBeVisible();
   await expect(page.getByText('0.849 cm')).toBeVisible();
+  await expect(page.getByText('73.0 cm')).toBeVisible();
+  await expect(page.getByText('72.9 cm')).toBeVisible();
+  await expect(page.getByText('74.2 cm')).toBeVisible();
   await page.close();
   const reopened=await context.newPage();
   await reopened.goto('/');
