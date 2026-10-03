@@ -143,3 +143,25 @@ The project must not claim exact WHO/DHS formula parity until those cases are ve
 - V0.2 through V0.9 — implementation/test coverage has been substantially expanded, but **no new gate tag is created in this environment** because the required npm/Vitest/Playwright/production-build evidence is unavailable.
 
 This is intentionally stricter than treating authored tests as executed tests.
+
+## Git handoff verification
+
+After the continuation implementation commits, the repository was checked with:
+
+```bash
+git status --short
+git fsck --full
+git bundle create tumbuhguard.bundle --all
+git bundle verify tumbuhguard.bundle
+git tag --list
+```
+
+Observed at handoff-audit commit `161f177`:
+
+- working tree: clean (the generated bundle is intentionally ignored)
+- `git fsck --full`: PASS
+- `git bundle verify tumbuhguard.bundle`: PASS; complete history recorded
+- retained verified tags only: `gate-v0.0-calculation`, `gate-v0.1-domain`
+- no V0.2+ tag was created without its required browser/npm evidence
+
+The final bundle is regenerated after the evidence commit so the delivered bundle contains the latest repository history.
