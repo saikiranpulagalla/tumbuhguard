@@ -312,3 +312,9 @@ Node `v24.19.0` / npm `10.9.0`. The hostile measurement corpus executes `25` par
 Linked re-standardization creation now advances the remediation parent revision atomically with child insertion. A second child request based on the original revision is rejected as `STALE_REVISION`; the stale child record is absent. Targeted persistence tests, typecheck, and lint passed.
 
 Playwright smoke remains **BLOCKED**. Diagnosis: interrupted preview runs left orphaned Vite processes on 4173–4177; after removing those repository-owned processes, Vite preview bound a listener but failed to answer bounded local HTTP requests, while a minimal Node HTTP control server answered immediately. No browser-path result is claimed.
+
+## Phase 7 — deterministic production-dist harness
+
+Commit `a3b8689` adds `scripts/serve-dist.mjs`, a Node-built static server limited to `dist/`. It returned HTTP `200` for `/`, the manifest, `sw.js`, and the built hashed JS asset; a traversal attempt could not escape `dist` (`404` after URL normalization). This bypasses the non-responsive Vite-preview path.
+
+The B00 Playwright run reached the new server and then reported its actual blocker: Playwright Chromium headless-shell revision `1243` is not installed. A bounded `playwright install chromium` attempt did not finish, and the required executable remains absent. Browser cases remain **BLOCKED**, not passed.
