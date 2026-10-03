@@ -10,7 +10,7 @@ const required = [
   'src/domain/session/transition.ts','src/data/repositories/session-repository.ts','public/manifest.webmanifest',
   'public/icons/icon.svg','public/demo/demo-seed.json','docs/claims-matrix.md','docs/protocol-sources.md',
   'docs/test-evidence.md','docs/demo-script.md','docs/judge-qa.md','e2e/blinded-round.spec.ts',
-  'e2e/offline.spec.ts','e2e/recovery.spec.ts','e2e/concurrency.spec.ts','e2e/update.spec.ts',
+  'e2e/offline.spec.ts','e2e/recovery.spec.ts','e2e/concurrency.spec.ts','e2e/update.spec.ts','e2e/hostile.spec.ts',
 ];
 for (const path of required) await access(path);
 

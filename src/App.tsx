@@ -57,8 +57,18 @@ export default function App() {
           setMessage('Recovered latest local session.');
         } else {
           const seed = createDemoSession();
-          await repository.create(seed);
-          setSession(seed);
+          try {
+            await repository.create(seed);
+            setSession(seed);
+          } catch (error) {
+            // React StrictMode may replay the mount effect in development.
+            // If the other replay created the deterministic seed first, reuse
+            // that exact local record rather than surfacing a false recovery
+            // failure for a duplicate primary key.
+            const raced = await repository.get(seed.id).catch(() => undefined);
+            if (!raced) throw error;
+            setSession(raced);
+          }
           setShowHome(true);
           setMessage('Synthetic competition setup ready.');
         }
@@ -138,6 +148,7 @@ export default function App() {
       // physical IndexedDB version cannot be opened by this build.
       db.close();
       await db.delete();
+      await db.open();
       const seed=createDemoSession();
       await repository.create(seed);
       setSession(seed); setShowHome(true); setLoadError(null); setOtherTab(false);

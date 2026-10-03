@@ -26,7 +26,8 @@ export type DomainErrorCode =
   | 'MEASUREMENT_OUT_OF_RANGE'
   | 'REVISION_MUST_ADVANCE'
   | 'STATION_CHANGE_REQUIRES_REVIEW'
-  | 'SUBJECT_REPLACEMENT_INVALID';
+  | 'SUBJECT_REPLACEMENT_INVALID'
+  | 'SESSION_NOT_FOUND';
 
 export class DomainError extends Error {
   constructor(public readonly code: DomainErrorCode, message: string = code) {
@@ -49,6 +50,7 @@ const FRIENDLY: Partial<Record<DomainErrorCode, string>> = {
   SUBJECT_DUPLICATE: 'Each active synthetic subject must be unique.',
   STATION_DUPLICATE: 'Each active subject must have one unique station assignment.',
   STATION_CHANGE_REQUIRES_REVIEW: 'Station assignments cannot be silently changed after measurements exist.',
+  SESSION_NOT_FOUND: 'This local session no longer exists. It may have been reset or removed in another tab.',
 };
 
 export function friendlyDomainError(error: unknown): string {

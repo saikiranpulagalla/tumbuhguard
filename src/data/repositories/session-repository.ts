@@ -87,13 +87,13 @@ export class SessionRepository {
     assertSessionShape(child);
     await this.assertProtocolSnapshotHash(child);
     const verifiedParent = await this.validatedRecord(parentId);
-    if (!verifiedParent) throw new Error('SESSION_NOT_FOUND');
+    if (!verifiedParent) throw new DomainError('SESSION_NOT_FOUND');
     const childIntegrityHash = await sha256Json(child);
     const auditId = crypto.randomUUID();
     const auditAt = new Date().toISOString();
     await this.database.transaction('rw', this.database.sessions, this.database.audit, async () => {
       const parentRaw = await this.database.sessions.get(parentId);
-      if (!parentRaw) throw new Error('SESSION_NOT_FOUND');
+      if (!parentRaw) throw new DomainError('SESSION_NOT_FOUND');
       const parent = parseStoredSessionRecord(parentRaw);
       if (parent.revision !== expectedParentRevision) throw new StaleRevisionError(expectedParentRevision, parent.revision);
       if (parent.state !== 'REMEDIATION') throw new DomainError('INVALID_TRANSITION', 'Parent session is no longer in remediation');
@@ -116,13 +116,13 @@ export class SessionRepository {
     // Hashing intentionally stays outside the Dexie transaction because Web
     // Crypto promises can allow an IndexedDB transaction to auto-close.
     const verifiedCurrent = await this.validatedRecord(session.id);
-    if (!verifiedCurrent) throw new Error('SESSION_NOT_FOUND');
+    if (!verifiedCurrent) throw new DomainError('SESSION_NOT_FOUND');
     const integrityHash = await sha256Json(session);
     const auditId = crypto.randomUUID();
     const auditAt = new Date().toISOString();
     return this.database.transaction('rw', this.database.sessions, this.database.audit, async () => {
       const currentRaw = await this.database.sessions.get(session.id);
-      if (!currentRaw) throw new Error('SESSION_NOT_FOUND');
+      if (!currentRaw) throw new DomainError('SESSION_NOT_FOUND');
       const current = parseStoredSessionRecord(currentRaw);
       if (current.revision !== expectedRevision) throw new StaleRevisionError(expectedRevision, current.revision);
       if (session.revision <= current.revision) throw new DomainError('REVISION_MUST_ADVANCE');
