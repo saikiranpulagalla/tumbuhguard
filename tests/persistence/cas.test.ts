@@ -42,9 +42,13 @@ describe('revision CAS', () => {
     const child=createRestandardizationSession(parent,'child-current','2026-10-03T01:00:00Z');
     await repo.createLinkedCAS(child,parent.id,parent.revision);
     await expect(repo.get(child.id)).resolves.toMatchObject({parentSessionId:parent.id,state:'DRAFT'});
+    await expect(repo.createLinkedCAS(createRestandardizationSession(parent,'child-race','2026-10-03T01:00:01Z'),parent.id,parent.revision)).rejects.toBeInstanceOf(StaleRevisionError);
+    await expect(repo.get('child-race')).resolves.toBeUndefined();
 
-    const newer=transition(parent,{type:'ADD_REMEDIATION_NOTE',note:{id:'note-1',text:'Review technique',createdAt:'2026-10-03T01:01:00Z'}});
-    await repo.saveCAS(newer,parent.revision,'ADD_REMEDIATION_NOTE');
+    const current=await repo.get(parent.id);
+    if (!current) throw new Error('parent should exist');
+    const newer=transition(current,{type:'ADD_REMEDIATION_NOTE',note:{id:'note-1',text:'Review technique',createdAt:'2026-10-03T01:01:00Z'}});
+    await repo.saveCAS(newer,current.revision,'ADD_REMEDIATION_NOTE');
     const staleChild=createRestandardizationSession(parent,'child-stale','2026-10-03T01:02:00Z');
     await expect(repo.createLinkedCAS(staleChild,parent.id,parent.revision)).rejects.toBeInstanceOf(StaleRevisionError);
     await expect(repo.get(staleChild.id)).resolves.toBeUndefined();

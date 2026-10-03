@@ -103,9 +103,17 @@ export class SessionRepository {
     await this.assertProtocolSnapshotHash(child);
     const verifiedParent = await this.validatedRecord(parentId);
     if (!verifiedParent) throw new DomainError('SESSION_NOT_FOUND');
+    const { integrityHash: _, ...parent } = verifiedParent;
     const childIntegrityHash = await sha256Json(child);
     const auditId = crypto.randomUUID();
     const auditAt = new Date().toISOString();
+    const nextParent: Session = {
+      ...parent,
+      revision: parent.revision + 1,
+      updatedAt: auditAt,
+      result: parent.result ? { ...parent.result, inputRevision: parent.revision + 1 } : null,
+    };
+    const parentIntegrityHash = await sha256Json(nextParent);
     await this.database.transaction('rw', this.database.sessions, this.database.audit, async () => {
       const parentRaw = await this.database.sessions.get(parentId);
       if (!parentRaw) throw new DomainError('SESSION_NOT_FOUND');
@@ -113,10 +121,11 @@ export class SessionRepository {
       if (parent.revision !== expectedParentRevision) throw new StaleRevisionError(expectedParentRevision, parent.revision);
       if (parent.state !== 'REMEDIATION') throw new DomainError('INVALID_TRANSITION', 'Parent session is no longer in remediation');
       await this.database.sessions.add({ ...child, integrityHash: childIntegrityHash });
+      await this.database.sessions.put({ ...nextParent, integrityHash: parentIntegrityHash });
       await this.database.audit.add({
         id: auditId,
         sessionId: parentId,
-        revision: parent.revision,
+        revision: nextParent.revision,
         eventType,
         at: auditAt,
         payloadHash: childIntegrityHash,
