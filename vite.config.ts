@@ -5,6 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   build: {
     rollupOptions: {
+      // Full application graph stalls in Rollup tree-shaking after transforms.
       treeshake: false,
     },
   },

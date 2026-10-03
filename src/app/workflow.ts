@@ -3,6 +3,7 @@ import { evaluateStandardization } from '../domain/protocol/evaluator';
 import { transition } from '../domain/session/transition';
 import type { Measurement, Session } from '../domain/session/state';
 import { activeSubjects } from '../domain/session/selectors';
+import { evaluateProtocolValidity } from '../domain/protocol/invariants';
 
 export function buildEvaluation(session: Session) {
   const subjects = activeSubjects(session);
@@ -30,12 +31,12 @@ export function buildEvaluation(session: Session) {
       referenceMean: (r[0]!.valueCm + r[1]!.valueCm) / 2,
     };
   });
-  return evaluateStandardization(session.protocolSnapshot, {
+  return { ...evaluateStandardization(session.protocolSnapshot, {
     traineePairs,
     referencePairs,
     subjectMeans,
     inputRevision: session.revision + 1,
-  });
+  }), protocolValidity: evaluateProtocolValidity(session) };
 }
 
 export function calculateSession(session: Session): Session {

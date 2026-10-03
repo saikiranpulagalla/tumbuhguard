@@ -140,7 +140,7 @@ export function evaluateDemoFixture(fixtureId: DemoFixtureId): SessionResult {
   const session = createDemoSession(fixtureId);
   const measurements = fixtureMeasurements(session, fixtureId);
   const rows = fixtureById(fixtureId).rows;
-  return evaluateStandardization(session.protocolSnapshot, {
+  return { ...evaluateStandardization(session.protocolSnapshot, {
     traineePairs: rows.map(row => ({ subjectId: row.id, first: row.r1, second: row.r2 })),
     referencePairs: rows.map(row => ({ subjectId: row.id, first: row.ref1, second: row.ref2 })),
     subjectMeans: rows.map(row => ({
@@ -149,7 +149,7 @@ export function evaluateDemoFixture(fixtureId: DemoFixtureId): SessionResult {
       referenceMean: (row.ref1 + row.ref2) / 2,
     })),
     inputRevision: measurements.length + 1,
-  });
+  }), protocolValidity: { valid: true, deviations: [] } };
 }
 
 export function createCadreCFastDemoSession(): Session {

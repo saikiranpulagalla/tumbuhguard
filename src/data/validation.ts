@@ -44,6 +44,10 @@ const resultSchema = z.object({
   precisionTEM: z.number().finite().nonnegative(), referenceTEM: z.number().finite().nonnegative().nullable(),
   signedDifference: z.number().finite().nullable(), referencePrecisionTEM: z.number().finite().nonnegative(),
   referenceValid: z.boolean(), precisionPass: z.boolean(), referencePass: z.boolean().nullable(),
+  protocolValidity: z.discriminatedUnion('valid', [
+    z.object({ valid: z.literal(true), deviations: z.array(z.never()) }),
+    z.object({ valid: z.literal(false), deviations: z.array(z.object({ code: z.literal('POSITION_MISMATCH'), subjectId: z.string(), stationId: z.string(), measurerId: z.string(), round: z.union([z.literal(1), z.literal(2)]), expectedPosition: z.enum(['RECUMBENT','STANDING']), actualPosition: z.enum(['RECUMBENT','STANDING']) })) }),
+  ]),
 });
 
 export const sessionSchema = z.object({

@@ -16,3 +16,6 @@
 | Synthetic-only privacy | Fixtures/export metadata; no NIK/name/photo inputs | Competition scope | “Competition build uses synthetic data only and requires no real PII.” | “Approved for real patient/child records.” | Home SYNTHETIC badge + exported `dataMode: SYNTHETIC` |
 | No causal blame | Results language + observation evidence separation | TumbuhGuard evidence policy | “Reference disagreement detected. Review measurement technique and equipment conditions.” | “The cadre used the equipment incorrectly.” | Results preserves measurements/equipment/observations without assigning cause |
 | No AI | Dependency/runtime/source guards | Competition scope | “No AI is used in this application.” | “AI-powered measurement diagnosis.” | Repository/runtime has no model/API dependency |
+# Position-validity release note
+
+A recorded position that differs from the active station's configured position is preserved as evidence and withholds the normal standardization verdict. No length/height conversion is applied.

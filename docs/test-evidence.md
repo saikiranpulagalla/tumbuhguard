@@ -288,3 +288,6 @@ npm run build
 ```
 
 These failures are dependency-restoration/runtime blockers and are not converted into gate PASS claims. No V0.2+ tag is created from this audit. Exact Annex-13/DHS parity remains `EXTERNAL_ORACLE_PARITY_PENDING`.
+# Position-validity release note
+
+PV01-PV06 verify matching positions, every trainee/reference round mismatch, multiple deviations, and inactive replacement history. The Cadre A attack case retains passing raw metrics but withholds the verdict when position is mismatched.

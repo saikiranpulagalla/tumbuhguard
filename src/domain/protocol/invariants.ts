@@ -1,6 +1,6 @@
 import { DomainError } from '../errors';
 import { ageBandFor, expectedPositionFor } from './profile';
-import type { Measurement, Session, Station, Subject } from '../session/state';
+import type { Measurement, ProtocolDeviation, ProtocolValidity, Session, Station, Subject } from '../session/state';
 
 export function assertDistinctMeasurers(session: Session): void {
   if (session.trainee.id === session.reference.id) throw new DomainError('MEASURER_ROLE_COLLISION');
@@ -57,6 +57,17 @@ export function assertMeasurementProvenance(session: Session, candidate: Measure
   if (!station) throw new DomainError('UNKNOWN_STATION');
   if (station.subjectId !== candidate.subjectId) throw new DomainError('STATION_SUBJECT_MISMATCH');
   if (!session.devices.some(device => device.id === station.deviceId)) throw new DomainError('MISSING_DEVICE_PROVENANCE');
+}
+
+export function evaluateProtocolValidity(session: Session): ProtocolValidity {
+  const active = new Set(session.subjects.filter(subject => subject.status === 'ACTIVE').map(subject => subject.id));
+  const deviations: ProtocolDeviation[] = [];
+  for (const measurement of session.measurements) {
+    if (!active.has(measurement.subjectId)) continue;
+    const station = session.stations.find(item => item.id === measurement.stationId);
+    if (station && station.expectedPosition !== measurement.position) deviations.push({ code: 'POSITION_MISMATCH', subjectId: measurement.subjectId, stationId: station.id, measurerId: measurement.measurerId, round: measurement.round, expectedPosition: station.expectedPosition, actualPosition: measurement.position });
+  }
+  return deviations.length === 0 ? { valid: true, deviations: [] } : { valid: false, deviations };
 }
 
 export function resultIsCurrent(session: Session): boolean {

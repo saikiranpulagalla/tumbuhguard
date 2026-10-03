@@ -51,6 +51,9 @@ export interface RemediationNote {
   readonly text: string;
   readonly createdAt: string;
 }
+export type ProtocolDeviationCode = 'POSITION_MISMATCH';
+export interface ProtocolDeviation { readonly code: ProtocolDeviationCode; readonly subjectId: string; readonly stationId: string; readonly measurerId: string; readonly round: 1 | 2; readonly expectedPosition: MeasurementPosition; readonly actualPosition: MeasurementPosition; }
+export type ProtocolValidity = { readonly valid: true; readonly deviations: readonly [] } | { readonly valid: false; readonly deviations: readonly ProtocolDeviation[] };
 export interface SessionResult {
   readonly calculationVersion: string;
   readonly inputRevision: number;
@@ -61,6 +64,7 @@ export interface SessionResult {
   readonly referenceValid: boolean;
   readonly precisionPass: boolean;
   readonly referencePass: boolean | null;
+  readonly protocolValidity: ProtocolValidity;
 }
 export interface Session {
   readonly id: string;

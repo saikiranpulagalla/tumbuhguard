@@ -18,7 +18,7 @@ export function passesStrictThreshold(rawValue: number, threshold: number): bool
   return rawValue < threshold;
 }
 
-export function evaluateStandardization(profile: ProtocolProfile, input: EvaluationInput): SessionResult {
+export function evaluateStandardization(profile: ProtocolProfile, input: EvaluationInput): Omit<SessionResult, 'protocolValidity'> {
   const precisionTEM = repeatabilityTEM(input.traineePairs);
   const referencePrecisionTEM = repeatabilityTEM(input.referencePairs);
   const referenceValid = passesStrictThreshold(referencePrecisionTEM, profile.expertPrecisionThreshold);
