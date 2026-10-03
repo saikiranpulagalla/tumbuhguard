@@ -22,6 +22,18 @@ test('hostile input: malformed decimal is rejected, comma decimal is accepted, d
   await expect(page.getByText('2/10 recorded')).toHaveCount(0);
 });
 
+test('B10 rapid Enter submits one measurement only', async ({ page }) => {
+  await openRoundOne(page);
+  const input=page.getByLabel('Synthetic Subject 01 measurement in centimetres');
+  await input.fill('80,2');
+  await Promise.all([
+    input.press('Enter', { noWaitAfter: true }),
+    input.press('Enter', { noWaitAfter: true }),
+  ]);
+  await expect(page.getByText('1/10 recorded')).toBeVisible();
+  await expect(page.getByText('2/10 recorded')).toHaveCount(0);
+});
+
 test('reset reconstructs deterministic synthetic home state and survives reload', async ({ page }) => {
   await openRoundOne(page);
   await page.getByRole('button',{name:'Reset demo'}).click();
