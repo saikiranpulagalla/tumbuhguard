@@ -246,3 +246,45 @@ npm run e2e                   -> FAIL: declared local Playwright package not ins
 ```
 
 These are dependency-restoration/runtime blockers. They are not converted into application PASS claims and no V0.2+ tag is created from this audit.
+
+## RC.3 fresh-extraction audit — source commit `db06040`
+
+The RC.3 handoff ZIP was built from the actual repository, including `.git/` and `tumbuhguard.bundle`, then extracted into a new directory and tested on 2026-10-03.
+
+Passed from the extracted copy:
+
+```text
+git rev-parse --is-inside-work-tree   -> true
+git rev-parse HEAD                    -> db060409f6d34b18e355fb1cd3425aa0b091345c
+git tag --list                        -> gate-v0.0-calculation, gate-v0.1-domain
+git fsck --full                       -> PASS
+git bundle verify tumbuhguard.bundle  -> PASS, complete history
+npm run test:smoke                    -> PASS
+  domain source files executed        -> 24
+  P01-P10, P13-P18 pure cases         -> PASS
+  D10 result revision invariant       -> PASS
+  S04 synthetic backup/hash           -> PASS
+  static runtime files scanned        -> 48
+  static required artifacts           -> 27
+```
+
+The required dependency-backed release path remained blocked, not green:
+
+```text
+npm ci --ignore-scripts --no-audit --no-fund
+  -> bounded at 15 seconds; registry still unreachable (exit 124)
+
+npm ci --offline --ignore-scripts --no-audit --no-fund
+  -> FAIL ENOTCACHED: @playwright/test is not present in the npm cache
+
+npm run typecheck
+  -> FAIL because React/ReactDOM/Node/Dexie package types are not installed
+
+npm test
+  -> FAIL because local Vitest is not installed
+
+npm run build
+  -> FAIL during TypeScript dependency/type resolution because project packages are not installed
+```
+
+These failures are dependency-restoration/runtime blockers and are not converted into gate PASS claims. No V0.2+ tag is created from this audit. Exact Annex-13/DHS parity remains `EXTERNAL_ORACLE_PARITY_PENDING`.
