@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readdirSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -10,7 +10,13 @@ const out=mkdtempSync(join(tmpdir(),'tumbuhguard-domain-'));
 const sources=[];
 function walk(dir){for(const entry of readdirSync(dir,{withFileTypes:true})){const path=join(dir,entry.name);if(entry.isDirectory())walk(path);else if(entry.name.endsWith('.ts'))sources.push(path)}}
 walk(join(root,'src/domain'));
-sources.push(join(root,'src/app/workflow.ts'),join(root,'src/fixtures/demo.ts'));
+sources.push(
+  join(root,'src/app/workflow.ts'),
+  join(root,'src/app/update-policy.ts'),
+  join(root,'src/data/schema-policy.ts'),
+  join(root,'src/data/transactions/hash.ts'),
+  join(root,'src/fixtures/demo.ts'),
+);
 const compile=spawnSync('tsc',['--strict','--noUncheckedIndexedAccess','--exactOptionalPropertyTypes','--target','ES2022','--module','CommonJS','--moduleResolution','Node','--lib','ES2022,DOM','--outDir',out,...sources],{encoding:'utf8'});
 if(compile.status!==0){process.stderr.write(compile.stdout);process.stderr.write(compile.stderr);process.exit(compile.status??1)}
 
@@ -23,6 +29,10 @@ const transitionModule=require(join(out,'domain/session/transition.js'));
 const invariants=require(join(out,'domain/protocol/invariants.js'));
 const blindSelectors=require(join(out,'domain/session/selectors.js'));
 const restandardization=require(join(out,'domain/session/restandardization.js'));
+const evidence=require(join(out,'domain/evidence/evidence.js'));
+const updatePolicy=require(join(out,'app/update-policy.js'));
+const schemaPolicy=require(join(out,'data/schema-policy.js'));
+const hashing=require(join(out,'data/transactions/hash.js'));
 const fixtures=require(join(out,'fixtures/demo.js'));
 const workflow=require(join(out,'app/workflow.js'));
 const { repeatabilityTEM, referenceAgreementTEM, signedMeanDifference }=calc;
@@ -55,6 +65,9 @@ const a=fixtures.evaluateDemoFixture('cadre-a-good'); assert.equal(a.precisionPa
 const b=fixtures.evaluateDemoFixture('cadre-b-cancellation'); assert.equal(b.precisionPass,false); close(b.signedDifference,0);
 const c=fixtures.evaluateDemoFixture('cadre-c-systematic-low'); close(c.precisionTEM,0.07071067811865475); close(c.referenceTEM,0.848528137423857); close(c.signedDifference,-1.2); assert.equal(c.referencePass,false);
 const invalid=fixtures.evaluateDemoFixture('invalid-reference'); assert.equal(invalid.referenceValid,false); assert.equal(invalid.referenceTEM,null); assert.equal(invalid.referencePass,null);
+const publicSeed=JSON.parse(readFileSync(join(root,'public/demo/demo-seed.json'),'utf8'));
+assert.equal(publicSeed.dataMode,'SYNTHETIC'); assert.equal(publicSeed.synthetic,true);
+assert.deepEqual(publicSeed.fixtures,Object.values(fixtures.DEMO_FIXTURES));
 
 const draft=fixtures.createDemoSession();
 invariants.assertSetupIntegrity(draft);
@@ -66,10 +79,33 @@ const station=round1.stations[0];
 const m={id:'smoke-m1',sessionId:round1.id,measurerId:round1.trainee.id,subjectId:station.subjectId,stationId:station.id,round:1,valueCm:80.2,position:station.expectedPosition,revision:0,recordedAt:'2026-10-03T01:00:00Z'};
 const once=transition(round1,{type:'RECORD_MEASUREMENT',measurement:m});
 assert.throws(()=>transition(once,{type:'RECORD_MEASUREMENT',measurement:{...m,id:'smoke-m1-duplicate'}}));
+const deviation=transition(round1,{type:'RECORD_MEASUREMENT',measurement:{...m,id:'smoke-position-deviation',position:m.position==='RECUMBENT'?'STANDING':'RECUMBENT'}});
+assert.equal(evidence.summarizeEvidence(deviation).protocolDeviationCount,1);
 assert.throws(()=>workflow.calculateSession(draft));
 const parent={...draft,state:'REMEDIATION',revision:9};
 const child=restandardization.createRestandardizationSession(parent,'child-smoke','2026-10-03T01:00:00Z');
 assert.equal(child.parentSessionId,parent.id); assert.equal(child.state,'DRAFT'); assert.equal(child.measurements.length,0); assert.equal(parent.state,'REMEDIATION');
+
+const replacement={id:'S11',syntheticLabel:'Synthetic Subject 11',ageMonths:12,ageBand:'UNDER_24_MONTHS',status:'ACTIVE',replacementFor:once.subjects[0].id};
+const replaced=invariants.replaceActiveSubject(once,once.subjects[0].id,replacement);
+const historical=replaced.measurements.find(row=>row.subjectId===once.subjects[0].id);
+assert.ok(historical);
+assert.equal(replaced.stations.find(row=>row.id===historical.stationId)?.subjectId,once.subjects[0].id);
+assert.ok(replaced.stations.some(row=>row.subjectId===replacement.id));
+
+for (const state of ['SETUP_VALID','ROUND1_OPEN','ROUND1_LOCKED','ROUND2_OPEN','ROUND2_LOCKED','REFERENCE_OPEN','REFERENCE_LOCKED','READY_TO_CALCULATE','RESULT_VALID','REMEDIATION']) {
+  assert.equal(updatePolicy.canApplyServiceWorkerUpdate(false,state),false,state);
+  assert.equal(updatePolicy.canApplyServiceWorkerUpdate(true,state),false,`${state} home-visible`);
+}
+assert.equal(updatePolicy.canApplyServiceWorkerUpdate(false,'DRAFT'),true);
+assert.equal(updatePolicy.canApplyServiceWorkerUpdate(false,'CLOSED'),true);
+
+assert.deepEqual(schemaPolicy.classifySchemaCompatibility(undefined,1,false),{kind:'BOOTSTRAP'});
+assert.deepEqual(schemaPolicy.classifySchemaCompatibility('1',1,true),{kind:'COMPATIBLE'});
+assert.deepEqual(schemaPolicy.classifySchemaCompatibility(undefined,1,true),{kind:'INCOMPATIBLE',storedVersion:'MISSING'});
+assert.deepEqual(schemaPolicy.classifySchemaCompatibility('999',1,true),{kind:'INCOMPATIBLE',storedVersion:'999'});
+const protocolHash=await hashing.sha256Json(profile.WORKING_STANDARDIZATION_PROFILE);
+assert.equal(protocolHash,profile.WORKING_STANDARDIZATION_PROFILE_HASH);
 
 console.log(JSON.stringify({
   status:'PASS',
@@ -78,6 +114,10 @@ console.log(JSON.stringify({
   cadreB:{precisionTEM:b.precisionTEM,signedDifference:b.signedDifference},
   cadreC:{precisionTEM:c.precisionTEM,referenceTEM:c.referenceTEM,signedDifference:c.signedDifference},
   invalidReference:{referenceValid:invalid.referenceValid,referenceTEM:invalid.referenceTEM},
+  updatePolicy:'active assessment reload deferred',
+  schemaPolicy:'missing/unknown schema rejected when records exist',
+  protocolHash,
+  publicDemoSeed:'source-synced synthetic fixtures',
   externalOracleParity:'EXTERNAL_ORACLE_PARITY_PENDING',
 },null,2));
 rmSync(out,{recursive:true,force:true});

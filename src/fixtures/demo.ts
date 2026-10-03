@@ -24,9 +24,20 @@ export interface DemoFixture {
 
 const ages = [12, 15, 18, 21, 23, 25, 30, 36, 42, 48] as const;
 const referenceBase = [74.2, 76.8, 79.5, 81.1, 83.7, 86.4, 89.2, 91.8, 94.1, 97.0] as const;
+const oneDecimal = (value: number) => Math.round(value * 10) / 10;
 
 function rowsFrom(generator: (base: number, index: number) => Omit<DemoFixtureRow, 'id' | 'ageMonths'>): readonly DemoFixtureRow[] {
-  return ages.map((ageMonths, index) => ({ id: `S${String(index + 1).padStart(2, '0')}`, ageMonths, ...generator(referenceBase[index]!, index) }));
+  return ages.map((ageMonths, index) => {
+    const row = generator(referenceBase[index]!, index);
+    return {
+      id: `S${String(index + 1).padStart(2, '0')}`,
+      ageMonths,
+      r1: oneDecimal(row.r1),
+      r2: oneDecimal(row.r2),
+      ref1: oneDecimal(row.ref1),
+      ref2: oneDecimal(row.ref2),
+    };
+  });
 }
 
 export const DEMO_FIXTURES: Readonly<Record<DemoFixtureId, DemoFixture>> = Object.freeze({

@@ -1,7 +1,22 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { TumbuhGuardDB } from '../../src/data/db';
 import { SessionRepository, StaleRevisionError } from '../../src/data/repositories/session-repository';
-import { createDemoSession } from '../../src/fixtures/demo';
+import { createRestandardizationSession } from '../../src/domain/session/restandardization';
+import { transition } from '../../src/domain/session/transition';
+import { createDemoSession, evaluateDemoFixture, fixtureMeasurements } from '../../src/fixtures/demo';
+
+function remediationParent() {
+  const base=createDemoSession('cadre-c-systematic-low','parent-session');
+  const measurements=fixtureMeasurements(base,'cadre-c-systematic-low');
+  const revision=measurements.length+2;
+  return {
+    ...base,
+    state:'REMEDIATION' as const,
+    revision,
+    measurements,
+    result:{...evaluateDemoFixture('cadre-c-systematic-low'),inputRevision:revision},
+  };
+}
 
 describe('revision CAS', () => {
   const databases: TumbuhGuardDB[] = [];
@@ -16,5 +31,22 @@ describe('revision CAS', () => {
     await repo.saveCAS(a, 0, 'TAB_A');
     const b = { ...original, state: 'SETUP_VALID' as const, revision: 1 };
     await expect(repo.saveCAS(b, 0, 'TAB_B')).rejects.toBeInstanceOf(StaleRevisionError);
+  });
+
+  it('creates re-standardization only when the parent remediation revision is current', async () => {
+    const db = new TumbuhGuardDB(`test-${crypto.randomUUID()}`); databases.push(db);
+    const repo = new SessionRepository(db);
+    const parent=remediationParent();
+    await repo.create(parent);
+
+    const child=createRestandardizationSession(parent,'child-current','2026-10-03T01:00:00Z');
+    await repo.createLinkedCAS(child,parent.id,parent.revision);
+    await expect(repo.get(child.id)).resolves.toMatchObject({parentSessionId:parent.id,state:'DRAFT'});
+
+    const newer=transition(parent,{type:'ADD_REMEDIATION_NOTE',note:{id:'note-1',text:'Review technique',createdAt:'2026-10-03T01:01:00Z'}});
+    await repo.saveCAS(newer,parent.revision,'ADD_REMEDIATION_NOTE');
+    const staleChild=createRestandardizationSession(parent,'child-stale','2026-10-03T01:02:00Z');
+    await expect(repo.createLinkedCAS(staleChild,parent.id,parent.revision)).rejects.toBeInstanceOf(StaleRevisionError);
+    await expect(repo.get(staleChild.id)).resolves.toBeUndefined();
   });
 });

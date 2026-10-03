@@ -7,5 +7,5 @@ it('defers service-worker reload through every active assessment state', () => {
   }
   expect(canApplyServiceWorkerUpdate(false,'DRAFT')).toBe(true);
   expect(canApplyServiceWorkerUpdate(false,'CLOSED')).toBe(true);
-  expect(canApplyServiceWorkerUpdate(true,'ROUND2_OPEN')).toBe(true);
+  expect(canApplyServiceWorkerUpdate(true,'ROUND2_OPEN')).toBe(false);
 });

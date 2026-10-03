@@ -68,16 +68,31 @@ export function assertResultCurrent(session: Session): void {
 }
 
 export function replaceActiveSubject(session: Session, oldSubjectId: string, replacement: Subject): Session {
+  if (!['DRAFT', 'SETUP_VALID', 'ROUND1_OPEN'].includes(session.state)) {
+    throw new DomainError('SUBJECT_REPLACEMENT_INVALID', 'Subject replacement must occur before Round 1 is locked');
+  }
   const old = session.subjects.find(subject => subject.id === oldSubjectId && subject.status === 'ACTIVE');
   if (!old || replacement.status !== 'ACTIVE' || replacement.replacementFor !== oldSubjectId) throw new DomainError('SUBJECT_REPLACEMENT_INVALID');
   if (session.subjects.some(subject => subject.id === replacement.id)) throw new DomainError('SUBJECT_DUPLICATE');
+  if (replacement.ageBand !== ageBandFor(replacement.ageMonths)) throw new DomainError('SUBJECT_REPLACEMENT_INVALID', 'Replacement age band does not match age in months');
   const station = session.stations.find(row => row.subjectId === oldSubjectId);
   if (!station) throw new DomainError('MISSING_STATION_PROVENANCE');
+  const replacementStationId = `${station.id}-replacement-${replacement.id}`;
+  if (session.stations.some(row => row.id === replacementStationId)) throw new DomainError('STATION_DUPLICATE');
   const subjects = session.subjects.map(subject => subject.id === oldSubjectId ? { ...subject, status: 'REPLACED' as const } : subject);
   return {
     ...session,
     subjects: [...subjects, replacement],
-    stations: session.stations.map(row => row.id === station.id ? { ...row, subjectId: replacement.id } : row),
+    // Preserve the original station record so historical measurements retain
+    // their subject/station provenance. The replacement receives a new active
+    // assignment rather than rewriting history in place.
+    stations: [...session.stations, {
+      ...station,
+      id: replacementStationId,
+      label: `${station.label} · replacement`,
+      subjectId: replacement.id,
+      expectedPosition: expectedPositionFor(replacement.ageMonths),
+    }],
     result: null,
     revision: session.revision + 1,
     updatedAt: new Date().toISOString(),

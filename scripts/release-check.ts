@@ -42,6 +42,9 @@ const publicSeed=JSON.parse(await readFile('public/demo/demo-seed.json','utf8'))
 if (publicSeed.dataMode!=='SYNTHETIC' || publicSeed.synthetic!==true || !publicSeed.fixtures?.length || publicSeed.fixtures.some(item=>item.synthetic!==true)) {
   throw new Error('Public demo seed lacks explicit synthetic metadata');
 }
+if (JSON.stringify(publicSeed.fixtures) !== JSON.stringify(Object.values(DEMO_FIXTURES))) {
+  throw new Error('Public demo seed drifted from source fixtures');
+}
 
 async function collect(root:string):Promise<string[]> {
   const out:string[]=[];

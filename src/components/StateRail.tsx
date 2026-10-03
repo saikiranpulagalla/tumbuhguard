@@ -5,8 +5,8 @@ const steps: readonly SessionState[] = ['DRAFT','SETUP_VALID','ROUND1_OPEN','ROU
 export function StateRail({ state }: { state: SessionState }) {
   const index = steps.indexOf(state);
   return <ol className="state-rail" aria-label="protocol progress">
-    {steps.map((step, i) => <li key={step} className={i < index ? 'done' : i === index ? 'current' : ''}>
-      <span>{i + 1}</span><small>{step.replaceAll('_',' ')}</small>
+    {steps.map((step, i) => <li key={step} className={i < index ? 'done' : i === index ? 'current' : ''} aria-current={i===index?'step':undefined}>
+      <span aria-hidden="true">{i + 1}</span><small>{step.replaceAll('_',' ')}</small>
     </li>)}
   </ol>;
 }

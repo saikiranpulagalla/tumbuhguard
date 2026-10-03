@@ -110,6 +110,16 @@ export default function App() {
     }
   };
 
+  const handleSaveError = async (error: unknown, sessionId: string) => {
+    if (error instanceof StaleRevisionError) {
+      setMessage('STALE_REVISION: another tab saved first. Reloading latest local session.');
+      const latest = await repository.get(sessionId);
+      if (latest) setSession(latest);
+      return;
+    }
+    setMessage(friendlyDomainError(error));
+  };
+
   const saveCalculated = async () => {
     if (!session) return;
     const expected = session.revision;
@@ -117,16 +127,27 @@ export default function App() {
       const next = calculateSession(session);
       await repository.saveCAS(next, expected, 'CALCULATE_RESULT');
       setSession(next); setMessage('Deterministic QA result saved.');
-    } catch (error) { setMessage(friendlyDomainError(error)); }
+      channelRef.current?.postMessage({ sessionId: next.id, revision: next.revision });
+    } catch (error) { await handleSaveError(error,session.id); }
   };
 
   const reset = async () => {
-    await db.transaction('rw', db.sessions, db.audit, db.meta, async () => {
-      await db.sessions.clear(); await db.audit.clear(); await db.meta.clear();
-    });
-    const seed=createDemoSession();
-    await repository.create(seed);
-    setSession(seed); setShowHome(true); setLoadError(null); setMessage('Demo reset to deterministic synthetic setup.');
+    try {
+      // Delete the local database rather than opening every current table to
+      // clear it. This recovery path also works when a future/unsupported
+      // physical IndexedDB version cannot be opened by this build.
+      db.close();
+      await db.delete();
+      const seed=createDemoSession();
+      await repository.create(seed);
+      setSession(seed); setShowHome(true); setLoadError(null); setOtherTab(false);
+      setMessage('Demo reset to deterministic synthetic setup.');
+      channelRef.current?.postMessage({ reset: true });
+    } catch (error) {
+      const friendly=friendlyDomainError(error);
+      setLoadError(friendly);
+      setMessage(friendly);
+    }
   };
 
   const startAssessment = async () => {
@@ -162,7 +183,8 @@ export default function App() {
       }
       await repository.saveCAS(next,expected,'LOAD_SYNTHETIC_REFERENCE_FIXTURE');
       setSession(next); setMessage('Synthetic qualified-reference readings loaded for the 90-sec demo.');
-    } catch(error) { setMessage(friendlyDomainError(error)); }
+      channelRef.current?.postMessage({ sessionId: next.id, revision: next.revision });
+    } catch(error) { await handleSaveError(error,session.id); }
   };
 
   const createRestandardization = async () => {
@@ -170,11 +192,11 @@ export default function App() {
     try {
       const now=new Date().toISOString();
       const next=createRestandardizationSession(session,crypto.randomUUID(),now);
-      await repository.create(next);
+      await repository.createLinkedCAS(next,session.id,session.revision);
       setSession(next); setShowHome(false);
       setMessage(`New re-standardization session linked to ${session.id}. Parent session was not overwritten.`);
       channelRef.current?.postMessage({ sessionId: session.id, revision: session.revision });
-    } catch(error) { setMessage(friendlyDomainError(error)); }
+    } catch(error) { await handleSaveError(error,session.id); }
   };
 
   const applyUpdate=async()=>{
@@ -184,7 +206,10 @@ export default function App() {
 
   if (loadError && !session) return <AppShell offlineReady={offlineReady} isOffline={isOffline}><section className="panel callout"><h2>Local session needs recovery</h2><p>{loadError}</p><button className="primary" onClick={()=>void reset()}>Reset synthetic demo data</button></section></AppShell>;
   if (!session) return <AppShell offlineReady={offlineReady} isOffline={isOffline}><section className="panel"><p>{message}</p></section></AppShell>;
-  if (showHome) return <AppShell offlineReady={offlineReady} isOffline={isOffline}>{updateAvailable&&<div className="update-banner" role="status"><span>Application update available.</span><button onClick={()=>void applyUpdate()}>Apply update</button></div>}{otherTab&&<div className="tab-warning" role="status">Another TumbuhGuard tab changed a local session. CAS protection is active; stale writes will be rejected. <button onClick={()=>setOtherTab(false)}>Dismiss</button></div>}<HomePanel offlineReady={offlineReady} isOffline={isOffline} onStart={()=>void startAssessment()} onDemo={()=>void runFastDemo()}/></AppShell>;
+  if (showHome) {
+    const homeUpdateSafe=canApplyServiceWorkerUpdate(true,session.state);
+    return <AppShell offlineReady={offlineReady} isOffline={isOffline}>{updateAvailable&&<div className="update-banner" role="status"><span>{homeUpdateSafe?'Application update available.':'Application update available; reload is deferred while this assessment is active.'}</span><button disabled={!homeUpdateSafe} onClick={()=>void applyUpdate()}>Apply update</button></div>}{otherTab&&<div className="tab-warning" role="status">Another TumbuhGuard tab changed a local session. CAS protection is active; stale writes will be rejected. <button onClick={()=>setOtherTab(false)}>Dismiss</button></div>}<HomePanel offlineReady={offlineReady} isOffline={isOffline} onStart={()=>void startAssessment()} onDemo={()=>void runFastDemo()}/></AppShell>;
+  }
 
   const activeSubjects=session.subjects.filter(subject=>subject.status==='ACTIVE');
   const activeRows = session.stations.filter(station=>activeSubjects.some(subject=>subject.id===station.subjectId)).map(station => {
@@ -195,7 +220,7 @@ export default function App() {
   const evidenceComplete = session.observations.length >= 3;
 
   const recordTrainee=(round:1|2)=>(subjectId:string, stationId:string, valueCm:number, position:MeasurementPosition) => void apply({type:'RECORD_MEASUREMENT',measurement:{id:crypto.randomUUID(),sessionId:session.id,measurerId:session.trainee.id,subjectId,stationId,round,valueCm,position,revision:session.revision+1,recordedAt:new Date().toISOString()}},`RECORD_ROUND_${round}`);
-  const recordReference=(subjectId:string,stationId:string,round:1|2,valueCm:number) => { const station=session.stations.find(item=>item.id===stationId)!; void apply({type:'RECORD_MEASUREMENT',measurement:{id:crypto.randomUUID(),sessionId:session.id,measurerId:session.reference.id,subjectId,stationId,round,valueCm,position:station.expectedPosition,revision:session.revision+1,recordedAt:new Date().toISOString()}},'RECORD_REFERENCE'); };
+  const recordReference=(subjectId:string,stationId:string,round:1|2,valueCm:number,position:MeasurementPosition) => { void apply({type:'RECORD_MEASUREMENT',measurement:{id:crypto.randomUUID(),sessionId:session.id,measurerId:session.reference.id,subjectId,stationId,round,valueCm,position,revision:session.revision+1,recordedAt:new Date().toISOString()}},'RECORD_REFERENCE'); };
   const addObservation=(item:string,result:Observation['result'],note?:string)=>{
     const base={id:crypto.randomUUID(),measurerId:session.trainee.id,item,result};
     const observation:Observation=note?.trim()?{...base,note:note.trim()}:base;

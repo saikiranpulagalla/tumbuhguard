@@ -123,6 +123,8 @@ describe('Tier A protocol/state', () => {
     expect(changed.measurements.some(row=>row.subjectId===old.id)).toBe(true);
     expect(changed.subjects.find(row=>row.id===old.id)?.status).toBe('REPLACED');
     expect(changed.stations.some(row=>row.subjectId===replacement.id)).toBe(true);
+    const historical=changed.measurements.find(row=>row.subjectId===old.id)!;
+    expect(changed.stations.find(row=>row.id===historical.stationId)?.subjectId).toBe(old.id);
     expect(changed.result).toBeNull();
   });
 

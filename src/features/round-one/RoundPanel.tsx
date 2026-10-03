@@ -17,10 +17,11 @@ export function RoundPanel({ session, round, rows, onRecord, onLock, blinded = f
   const existing = useMemo(() => session.measurements.filter(m => m.measurerId === session.trainee.id && m.round === round && session.subjects.some(s=>s.id===m.subjectId&&s.status==='ACTIVE')), [session, round]);
   const [drafts, setDrafts] = useState<Record<string,string>>({});
   const [errors, setErrors] = useState<Record<string,string>>({});
+  const [positions, setPositions] = useState<Record<string,MeasurementPosition>>({});
   const submit = (row: EntryRow) => {
     const parsed = parseMeasurementInput(drafts[row.subjectId] ?? '');
     if (!parsed.ok) { setErrors(e => ({...e,[row.subjectId]:errorMessage[parsed.code]??parsed.code})); return; }
-    onRecord(row.subjectId, row.stationId, parsed.valueCm, row.expectedPosition);
+    onRecord(row.subjectId, row.stationId, parsed.valueCm, positions[row.subjectId] ?? row.expectedPosition);
     setErrors(e => ({...e,[row.subjectId]:''}));
   };
   return <section className="panel" aria-labelledby={`round-${round}-title`}>
@@ -34,6 +35,7 @@ export function RoundPanel({ session, round, rows, onRecord, onLock, blinded = f
         return <div className={`entry-row ${done?'recorded':''}`} key={row.subjectId}>
           <div><strong>{row.subjectLabel}</strong><small>{row.stationLabel} · {row.expectedPosition}</small></div>
           {done ? <span className="recorded-label">Recorded</span> : <>
+            <label className="position-control"><span>Actual position</span><select aria-label={`${row.subjectLabel} actual position`} value={positions[row.subjectId] ?? row.expectedPosition} onChange={e=>setPositions(current=>({...current,[row.subjectId]:e.target.value as MeasurementPosition}))}><option value="RECUMBENT">RECUMBENT</option><option value="STANDING">STANDING</option></select></label>
             <label htmlFor={inputId}><span className="sr-only">{row.subjectLabel} measurement in centimetres</span><input id={inputId} inputMode="decimal" autoComplete="off" placeholder="cm" aria-invalid={Boolean(errors[row.subjectId])} aria-describedby={errors[row.subjectId]?errorId:undefined} value={drafts[row.subjectId] ?? ''} onChange={e => setDrafts(d => ({...d,[row.subjectId]:e.target.value}))}/></label>
             <button onClick={() => submit(row as EntryRow)}>Record</button>
           </>}

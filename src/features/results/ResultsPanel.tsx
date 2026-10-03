@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Session } from '../../domain/session/state';
 import { MetricCard } from '../../components/MetricCard';
 import { deriveRemediation } from '../../domain/evidence/remediation';
+import { summarizeEvidence } from '../../domain/evidence/evidence';
 
 type EvidenceTab = 'MEASUREMENTS' | 'OBSERVATION' | 'EQUIPMENT' | 'PROTOCOL';
 
@@ -9,6 +10,7 @@ export function ResultsPanel({ session, onRemediate, onClose }: { session: Sessi
   const [tab,setTab]=useState<EvidenceTab>('MEASUREMENTS');
   const r=session.result!;
   const remediation=deriveRemediation(session);
+  const evidenceSummary=summarizeEvidence(session);
   const needsRemediation=!r.precisionPass || !r.referenceValid || r.referencePass===false || remediation.length>0;
   const tabs: readonly {id:EvidenceTab;label:string}[]=[
     {id:'MEASUREMENTS',label:'Measurements'}, {id:'OBSERVATION',label:'Observation'}, {id:'EQUIPMENT',label:'Equipment'}, {id:'PROTOCOL',label:'Protocol'},
@@ -26,6 +28,7 @@ export function ResultsPanel({ session, onRemediate, onClose }: { session: Sessi
 
     {!r.referenceValid && <div className="reference-blocked" role="status"><strong>Reference agreement assessment unavailable:</strong> reference-measurer repeatability did not meet the selected protocol profile. Trainee repeatability remains visible.</div>}
     {r.referenceValid && r.referencePass===false && <div className="review-message" role="status"><strong>Reference disagreement detected.</strong> Review measurement technique and equipment conditions. The application preserves evidence and does not guess causality.</div>}
+    {evidenceSummary.protocolDeviationCount>0 && <div className="review-message" role="status"><strong>Protocol-position deviation recorded.</strong> {evidenceSummary.protocolDeviationCount} active measurement{evidenceSummary.protocolDeviationCount===1?'':'s'} used a position different from the station expectation. Review the recorded evidence; no automatic length/height conversion was applied.</div>}
 
     <div className="oracle-warning"><strong>Method parity status</strong><code>EXTERNAL_ORACLE_PARITY_PENDING</code><span>The working agreement formula is not claimed as WHO/DHS Annex-13 parity until checked against the authoritative oracle.</span></div>
 
@@ -33,7 +36,7 @@ export function ResultsPanel({ session, onRemediate, onClose }: { session: Sessi
       {tabs.map(item=><button key={item.id} role="tab" aria-selected={tab===item.id} className={tab===item.id?'active':''} onClick={()=>setTab(item.id)}>{item.label}</button>)}
     </div>
     <div className="evidence-content" role="tabpanel">
-      {tab==='MEASUREMENTS' && <div className="evidence-table-wrap"><table className="evidence-table"><thead><tr><th>Subject</th><th>Role</th><th>Round</th><th>Value</th><th>Position</th><th>Station</th></tr></thead><tbody>{session.measurements.filter(m=>session.subjects.some(s=>s.id===m.subjectId&&s.status==='ACTIVE')).map(m=>{const subject=session.subjects.find(s=>s.id===m.subjectId)!;const station=session.stations.find(s=>s.id===m.stationId)!;return <tr key={m.id}><td>{subject.syntheticLabel}</td><td>{m.measurerId===session.trainee.id?'Trainee':'Reference'}</td><td>{m.round}</td><td>{m.valueCm.toFixed(1)} cm</td><td>{m.position}</td><td>{station.label}</td></tr>})}</tbody></table></div>}
+      {tab==='MEASUREMENTS' && <div className="evidence-table-wrap"><table className="evidence-table"><thead><tr><th>Subject</th><th>Role</th><th>Round</th><th>Value</th><th>Expected position</th><th>Recorded position</th><th>Protocol flag</th><th>Station</th></tr></thead><tbody>{session.measurements.filter(m=>session.subjects.some(s=>s.id===m.subjectId&&s.status==='ACTIVE')).map(m=>{const subject=session.subjects.find(s=>s.id===m.subjectId)!;const station=session.stations.find(s=>s.id===m.stationId)!;const deviates=station.expectedPosition!==m.position;return <tr key={m.id}><td>{subject.syntheticLabel}</td><td>{m.measurerId===session.trainee.id?'Trainee':'Reference'}</td><td>{m.round}</td><td>{m.valueCm.toFixed(1)} cm</td><td>{station.expectedPosition}</td><td>{m.position}</td><td>{deviates?'POSITION DEVIATION':'—'}</td><td>{station.label}</td></tr>})}</tbody></table></div>}
       {tab==='OBSERVATION' && <div className="evidence-list">{session.observations.length?session.observations.map(o=><article key={o.id}><strong>{o.item}</strong><span>{o.result.replaceAll('_',' ')}</span>{o.note&&<small>{o.note}</small>}</article>):<p>No observation evidence recorded.</p>}</div>}
       {tab==='EQUIPMENT' && <div className="evidence-list">{session.devices.map(device=><article key={device.id}><strong>{device.label}</strong><span>{device.type}</span><small>{session.stations.filter(station=>station.deviceId===device.id).length} linked stations</small></article>)}</div>}
       {tab==='PROTOCOL' && <div className="protocol-evidence"><dl><dt>Profile</dt><dd>{session.protocolSnapshot.name}</dd><dt>Version</dt><dd>{session.protocolVersion}</dd><dt>Snapshot hash</dt><dd><code>{session.protocolHash}</code></dd><dt>Data mode</dt><dd>{session.dataMode}</dd><dt>Age composition</dt><dd>{session.protocolSnapshot.ageCompositionRule}</dd></dl></div>}
