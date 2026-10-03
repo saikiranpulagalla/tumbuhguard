@@ -67,3 +67,5 @@ Display rounding never determines classification.
 Competition age composition is project-defined for the synthetic demo: five subjects under 24 months and five at/over 24 months. It is not described as an official programme rule.
 
 No automatic ±0.7 cm conversion is implemented. Expected/actual measurement position is preserved as evidence instead.
+
+The `30–220 cm` input range is an application-level competition guardrail for obviously nonsensical length/height entries. It is **not** presented as a WHO, UNICEF, DHS, or Kemenkes programme threshold.

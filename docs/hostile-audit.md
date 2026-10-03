@@ -6,7 +6,7 @@ No feature additions belong in this gate. Each item is mapped to a guard or auto
 |---|---|
 | refresh | IndexedDB recovery; `e2e/recovery.spec.ts` |
 | browser back / forward | state-driven UI; Round-1 data absent from blind DTO; `e2e/blinded-round.spec.ts` |
-| double click / duplicate submit | domain duplicate-measurement invariant + CAS |
+| double click / duplicate submit | domain duplicate-measurement invariant + CAS; browser path authored in `e2e/hostile.spec.ts` |
 | decimal comma | parser normalizes one unambiguous comma |
 | malformed input | parser rejects empty/NaN/Infinity/mixed separators/range violations |
 | duplicate subject | setup invariant rejects duplicate active IDs |
@@ -20,6 +20,6 @@ No feature additions belong in this gate. Each item is mapped to a guard or auto
 | replacement subject | old measurement history retained; active selection switches to replacement |
 | mobile layout | 390×844 Playwright overflow check + mobile CSS |
 | keyboard operation | labeled form fields, focus-visible CSS, keyboard E2E |
-| reset | clears sessions/audit/meta then reconstructs deterministic synthetic seed |
+| reset | deletes/reopens the physical local DB then reconstructs deterministic synthetic seed; reload path authored in `e2e/hostile.spec.ts` |
 | fresh install | repository creates default synthetic seed when local DB is empty |
-| old/unknown schema | explicit `SCHEMA_INCOMPATIBLE`; no silent unknown migration |
+| old/unknown schema | explicit `SCHEMA_INCOMPATIBLE`; missing marker with existing data and physically newer IndexedDB schema are not silently accepted |

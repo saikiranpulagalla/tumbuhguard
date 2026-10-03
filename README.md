@@ -214,9 +214,9 @@ Tier-A coverage is authored across:
 - `tests/persistence/` — CAS, integrity, malformed records and schema compatibility
 - `tests/claims/` — privacy, synthetic-only and prohibited-claim guards
 - `tests/fixtures/` — Cadre A/B/C/Invalid Reference
-- `e2e/` — blinding, recovery, two-tab CAS, offline workflow, update safety, demo and mobile/accessibility checks
+- `e2e/` — blinding, recovery, two-tab CAS, offline workflow, update safety, hostile input/reset paths, demo and mobile/accessibility checks
 
-M03/M04 authoritative external golden fixtures remain intentionally blocked by `EXTERNAL_ORACLE_PARITY_PENDING` rather than fabricated.
+M03/M04 authoritative external golden fixtures remain intentionally blocked by `EXTERNAL_ORACLE_PARITY_PENDING` rather than fabricated. The release guard also requires Node 24 and a fully resolved lockfile; it cannot report a competition-release PASS from the current bootstrap lock.
 
 ## Repository history / release gates
 

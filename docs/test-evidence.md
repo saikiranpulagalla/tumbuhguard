@@ -29,10 +29,10 @@ The script compiles the actual dependency-free project domain/application/fixtur
 
 ```text
 status: PASS
-compiled source files: 20
-Cadre A precision TEM: 0.07071067811865074
+compiled source files: 23
+Cadre A precision TEM: 0.07071067811865475
 Cadre A reference agreement TEM: 0
-Cadre B precision TEM: 1.4849242404917458
+Cadre B precision TEM: 1.4849242404917498
 Cadre B signed difference: 0
 Cadre C precision TEM: 0.07071067811865475
 Cadre C reference agreement TEM: 0.848528137423857
@@ -58,13 +58,16 @@ The executed assertions additionally cover:
 - duplicate measurement submission rejection
 - calculation before ready state rejected
 - linked re-standardization creates a new child and leaves the parent state unchanged
+- active-session service-worker update reloads are deferred
+- missing/unknown schema markers with existing records are rejected by pure schema policy
+- the public demo seed exactly matches the source fixtures and remains explicitly synthetic
 
 ### Source hygiene — PASS
 
 A dependency-free mirror of `scripts/lint-source.ts` was executed over `src/`, `tests/`, and `e2e/`:
 
 ```text
-PASS 68 source/test files
+PASS 71 source/test files
 ```
 
 It checks trailing whitespace, tab characters, `@ts-ignore`, and unsafe `as any` casts. `git diff --check` also passes.
@@ -74,12 +77,12 @@ It checks trailing whitespace, tab characters, `@ts-ignore`, and unsafe `as any`
 The globally installed TypeScript parser parsed all TypeScript/TSX files in `src/`, `tests/`, `e2e/`, and `scripts/`:
 
 ```text
-PASS TypeScript syntax parse 71 TS/TSX files
+PASS TypeScript syntax parse 74 TS/TSX files
 ```
 
 This is a syntax check only. It is **not** a substitute for the project-local `npm run typecheck` gate.
 
-### Static release guard mirror — PASS
+### Static release guard mirror — PASS (non-release subset)
 
 A dependency-free release audit was run against repository files. It verified:
 
@@ -87,21 +90,25 @@ A dependency-free release audit was run against repository files. It verified:
 - required `typecheck`, `lint`, `test`, `e2e`, and `build` scripts exist
 - build metadata contains the external-oracle boundary
 - the public demo seed contains exactly four explicit synthetic fixtures
+- all visible demo measurements remain at one-decimal precision
+- source/public fixture data are synchronized
 - no positive banned certification/diagnosis claim appears in runtime source
 - no `fetch`, `XMLHttpRequest`, `WebSocket`, or `axios` runtime path exists in `src/`
-- safe integrity and blinding wording exists in the claims matrix
+- safe integrity/blinding/position wording exists in documentation
 - required release-audit artifacts exist
 
-Result:
+Latest result:
 
 ```text
-staticReleaseGuard: PASS
+staticAudit: PASS
+requiredArtifacts: 23
 fixtureCount: 4
 runtimeNetworkCalls: none found
-externalOracleParity: EXTERNAL_ORACLE_PARITY_PENDING
+nodeObserved: v22.16.0
+lockResolved: false
 ```
 
-The project-local `scripts/release-check.ts` contains the stronger equivalent check and is intended to run through `npm run release:check` once dependencies are available.
+This is deliberately **not** the competition release check. `scripts/release-check.ts` now refuses to pass unless it is executed on Node 24 and the lockfile contains resolved entries for every declared direct dependency. With the current bootstrap lock and Node 22, a release pass is impossible by design.
 
 ### Git structural check — PASS before continuation commits
 
@@ -122,9 +129,9 @@ npm run verify:fixtures
 npm run release:check
 ```
 
-An explicit `npm ci --ignore-scripts` retry on 2026-10-03 also timed out while registry access was unavailable.
+An explicit `timeout 30s npm ci --ignore-scripts --no-audit --no-fund --fetch-retries=0` retry on 2026-10-03 exited `124` while registry access remained unavailable.
 
-The current `package-lock.json` contains only the root dependency declaration and has not been hydrated/validated into a full reproducible dependency graph. Under Node 24 with registry access, regenerate the complete lock once, commit it, and then use `npm ci` for release validation.
+The current `package-lock.json` contains only the root dependency declaration and has not been hydrated/validated into a full reproducible dependency graph. Missing resolved entries include React, Dexie, Vite, Zod, Vitest and Playwright. Under Node 24 with registry access, regenerate the complete lock once, commit it, and then use `npm ci` for release validation.
 
 ## External-oracle status
 

@@ -10,15 +10,26 @@ const required = [
   'src/domain/session/transition.ts','src/data/repositories/session-repository.ts','public/manifest.webmanifest',
   'public/icons/icon.svg','public/demo/demo-seed.json','docs/claims-matrix.md','docs/protocol-sources.md',
   'docs/test-evidence.md','docs/demo-script.md','docs/judge-qa.md','e2e/blinded-round.spec.ts',
-  'e2e/offline.spec.ts','e2e/recovery.spec.ts','e2e/concurrency.spec.ts','e2e/update.spec.ts','e2e/hostile.spec.ts',
+  'e2e/offline.spec.ts','e2e/recovery.spec.ts','e2e/concurrency.spec.ts','e2e/update.spec.ts','e2e/hostile.spec.ts','e2e/accessibility.spec.ts',
+  'docs/hostile-audit.md',
 ];
 for (const path of required) await access(path);
+
+if (Number(process.versions.node.split('.')[0]) !== 24) throw new Error(`Release validation requires Node 24 LTS; observed ${process.version}`);
 
 const pkg = JSON.parse(await readFile('package.json','utf8')) as { version?:string; engines?:{node?:string}; scripts?:Record<string,string> };
 if (pkg.engines?.node !== '>=24 <25') throw new Error('Node 24 engine lock missing');
 if (pkg.version !== BUILD_INFO.version) throw new Error('Build/package version mismatch');
 if (!BUILD_INFO.buildId || /dev|placeholder|unknown/i.test(BUILD_INFO.buildId)) throw new Error(`Release build ID invalid: ${BUILD_INFO.buildId}`);
 for (const script of ['typecheck','lint','test','e2e','build']) if (!pkg.scripts?.[script]) throw new Error(`Required npm script missing: ${script}`);
+
+const lock=JSON.parse(await readFile('package-lock.json','utf8')) as { lockfileVersion?:number; packages?:Record<string,unknown> };
+if (lock.lockfileVersion !== 3 || !lock.packages) throw new Error('package-lock.json is not a supported npm lockfile');
+const root=(lock.packages[''] ?? {}) as { dependencies?:Record<string,string>; devDependencies?:Record<string,string> };
+const declared={...(root.dependencies??{}),...(root.devDependencies??{})};
+for (const dependency of Object.keys(declared)) {
+  if (!Object.prototype.hasOwnProperty.call(lock.packages,`node_modules/${dependency}`)) throw new Error(`package-lock.json is not fully resolved: ${dependency} entry missing`);
+}
 
 function stable(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(stable);
@@ -30,6 +41,7 @@ if (protocolHash !== WORKING_STANDARDIZATION_PROFILE_HASH) throw new Error(`Prot
 
 for (const fixture of Object.values(DEMO_FIXTURES)) {
   if (fixture.synthetic !== true || fixture.rows.length !== 10) throw new Error(`Synthetic fixture invalid: ${fixture.fixtureId}`);
+  for (const row of fixture.rows) for (const value of [row.r1,row.r2,row.ref1,row.ref2]) if (!Number.isInteger(value*10)) throw new Error(`Demo fixture precision drifted beyond one decimal: ${fixture.fixtureId}/${row.id}`);
 }
 const cadreC=evaluateDemoFixture('cadre-c-systematic-low');
 if (Math.abs(cadreC.precisionTEM-0.07071067811865475)>1e-9 || Math.abs((cadreC.referenceTEM??0)-0.848528137423857)>1e-9 || Math.abs((cadreC.signedDifference??0)+1.2)>1e-9) {
