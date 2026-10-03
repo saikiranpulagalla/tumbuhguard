@@ -1,148 +1,243 @@
 # TumbuhGuard Standardize
 
 > **A measurement can be consistent and still be wrong.**  
-> Validate the measurer, not just the measurement.
+> **Validate the measurer, not just the measurement.**
 
-TumbuhGuard Standardize is an offline-first protocol runner for practical length/height anthropometry standardization. It guides supervisors through blinded repeat measurements, qualified-reference comparison, protocol-validity checks, observation evidence, remediation, and re-standardization.
+TumbuhGuard Standardize is an **offline-first protocol runner for practical length/height anthropometry standardization**. It guides supervisors through blinded repeat measurements, qualified-reference comparison, protocol-validity checks, observation evidence, remediation, and re-standardization.
 
-This repository is a **synthetic-data competition prototype for FIK FAIR 2026 · IGNITE**. It is not a child-growth monitoring application and it is not an official Kemenkes or WHO certification system.
+This repository is a **synthetic-data competition prototype for FIK FAIR 2026 · IGNITE**. It is not a child-growth monitoring application and it is not an official certification system.
 
-## Why it exists
+## Problem
 
-Digital records can preserve a measurement without proving the measurement was performed reliably. TumbuhGuard focuses on the practical QA layer between training and record entry:
+Digitizing a measurement does not prove that the measurement was performed reliably. Anthropometric measurements can be repeatable but systematically different from a qualified reference, inconsistent between repeats, or affected by technique/equipment conditions.
 
-**protocol enforcement + evidence integrity + deterministic measurement QA**
+The practical QA problem is therefore not only **what value was recorded**, but **whether the measurer completed a defensible standardization workflow**.
 
-Excel can calculate a result. TumbuhGuard manages whether the result was produced through a valid assessment workflow.
+## Solution
 
-## Competition scope
+TumbuhGuard operationalizes:
 
-Included:
+**Protocol enforcement + evidence integrity + deterministic measurement QA**
 
-- length/height only
-- one trainee + one qualified reference measurer
-- 10 deterministic synthetic subjects
-- blinded Round-2 workflow
-- trainee repeatability TEM
-- reference repeatability validity gate
-- working trainee/reference agreement calculation
-- signed mean difference as descriptive evidence
-- station/device provenance
-- observed-skill evidence
-- remediation state
-- revision CAS / stale-write prevention
-- IndexedDB persistence
-- JSON export with SHA-256 consistency hash
-- PWA cache configuration for offline-after-warmup operation
+The competition build provides:
 
-Explicitly out of scope: AI/LLMs, computer vision, cloud backend, authentication, real child data, diagnosis, growth monitoring, Z-scores, FHIR/SATUSEHAT/ASIK integration, dashboards, gamification, and analytics.
+- one length/height standardization profile
+- 10 synthetic subjects
+- one trainee and one qualified reference measurer
+- locked Round 1 followed by blinded Round 2
+- reference-measurer repeatability validity gate
+- deterministic repeatability/agreement mathematics
+- station/device/position provenance
+- observation evidence
+- remediation notes and linked re-standardization
+- IndexedDB recovery, CAS stale-write rejection and integrity hashes
+- offline-after-warmup PWA operation
 
-## Scientific boundary
+## Why it matters
 
-The repeatability formula is implemented as:
+ASIK can digitize the record and Plataran Sehat can digitize learning. TumbuhGuard Standardize is positioned as a **proposed practical measurement-quality assessment workflow between training and downstream record entry**.
+
+It does not claim to replace existing government systems or to have invented TEM/anthropometric standardization.
+
+## How the standardization workflow works
 
 ```text
+Setup
+  ↓
+Round 1 measurement
+  ↓
+Lock Round 1
+  ↓
+Blinded Round 2
+  ↓
+Qualified-reference repeats
+  ↓
+Reference-validity gate
+  ↓
+Deterministic QA result
+  ↓
+Evidence review
+  ↓
+Remediation
+  ↓
+New linked re-standardization session
+```
+
+The application uses an explicit state machine and rejects impossible transitions such as Round 2 before Round 1 lock or calculation before reference completion.
+
+### Workflow blinding
+
+Safe claim:
+
+> The application enforces blinded measurement in the normal assessment workflow: Round-1 values are not exposed to the Round-2 entry interface.
+
+This is workflow blinding, not cryptographic secrecy against a malicious local device owner using unrestricted DevTools.
+
+## Scientific methodology
+
+Repeatability TEM is implemented as:
+
+```text
+d_i = x_i1 - x_i2
+
 TEM = sqrt(sum(d_i^2) / (2N))
 ```
 
-The current working reference-agreement calculation uses quadratic differences between trainee/reference subject means. Exact parity with an authoritative WHO/UNICEF/DHS Annex-13 oracle was **not verifiable from supplied materials in this build environment**.
+Pairs are matched by subject ID; duplicates and empty inputs are rejected.
 
-Therefore the repository marks:
+The working competition profile uses strict raw-value comparisons:
+
+- trainee repeatability TEM `< 0.6 cm`
+- trainee/reference agreement TEM `< 0.8 cm`
+- reference measurer repeatability TEM `< 0.4 cm`
+
+Classification never uses rounded display values.
+
+Signed mean difference is descriptive evidence only. Cadre B proves that positive/negative deviations can cancel to a mean near zero while repeatability remains poor. Cadre C proves the headline insight: excellent repeatability can coexist with poor qualified-reference agreement.
+
+### External-oracle boundary
+
+The supplied materials did **not** include the authoritative Annex-13/DHS oracle needed to prove exact reference-agreement parity. Therefore the repository deliberately marks:
 
 ```text
 EXTERNAL_ORACLE_PARITY_PENDING
 ```
 
-Do not describe the working agreement formula as proven WHO/DHS oracle parity until that audit is completed.
+The working agreement formula must not be described as verified WHO/DHS parity until that external oracle audit is completed.
 
-Working strict thresholds (raw values, never rounded values):
+## What TumbuhGuard does not claim
 
-- trainee repeatability TEM `< 0.6 cm`
-- reference agreement TEM `< 0.8 cm`
-- reference measurer repeatability TEM `< 0.4 cm`
+The competition build does **not** claim:
 
-## Locked runtime target
+- Kemenkes certification
+- WHO certification of a cadre/measurer
+- official Kemenkes certification workflow
+- official Kemenkes authorship of the working TEM thresholds
+- WHO authorship of this exact UI sequence
+- diagnosis, stunting prediction or growth monitoring
+- causal attribution of a disagreement to a person/equipment condition without observation evidence
+- tamper-proof local storage
+
+Deployment as an official cadre assessment would require programme validation and approval.
+
+## Offline architecture
+
+The core workflow has no runtime healthcare/cloud/API dependency.
+
+After the application has loaded successfully once and its shell is cached, the complete standardization workflow is designed to operate without network connectivity. Workbox precaches the built HTML/JS/CSS, local icon/manifest, synthetic fixtures and help/protocol copy bundled into the application.
+
+Service-worker updates use a prompted flow. A waiting update is **not allowed to force-reload an active assessment**; apply/reload is enabled only at a safe workflow state.
+
+`navigator.storage.persist()` is requested opportunistically. Denial does not block the application.
+
+## Persistence and integrity
+
+Sessions are stored in IndexedDB through Dexie. Writes use revision compare-and-swap semantics:
+
+```text
+expected revision == stored revision  → save + increment
+expected revision != stored revision  → STALE_REVISION
+```
+
+BroadcastChannel is only a duplicate-tab UX warning. Correctness depends on CAS, not the channel.
+
+Stored sessions are Zod-validated and SHA-256 checked before use. This is described as:
+
+> **Application-level revision history with integrity checks.**
+
+It is not protection against a malicious owner of the same local device.
+
+## Privacy
+
+The competition build is **synthetic-only**.
+
+It does not require NIK, real child names, photos, addresses, phone numbers, medical-record identifiers, or any real health information. Exports explicitly contain:
+
+```text
+dataMode: SYNTHETIC
+synthetic: true
+```
+
+No AI is used in the application.
+
+## Demo
+
+The Home screen includes **Run 90-sec Demo**. It loads the deterministic Cadre C case at the final blinded Round-2 entry:
+
+1. enter S10 repeat `95.9 cm`
+2. lock Round 2
+3. open the reference stage
+4. load the explicit synthetic reference fixture
+5. lock evidence and calculate
+6. show approximately:
+   - repeatability TEM `0.071 cm` — PASS
+   - reference agreement `0.849 cm` — NEEDS RE-STANDARDIZATION
+   - signed difference `-1.200 cm` — descriptive only
+7. inspect Measurements / Observation / Equipment / Protocol evidence
+8. create a linked re-standardization session
+
+See `docs/demo-script.md` for the judge script.
+
+## Local development
+
+Locked target:
 
 - Node 24 LTS
+- TypeScript strict mode
 - React 19.x
 - Vite 7.x
-- TypeScript strict mode
 - Dexie 4.x / IndexedDB
 - Zod 4.x
 - Vitest 4.x
 - Playwright 1.63.x
 - vite-plugin-pwa / Workbox
 
-## Run
-
-With Node 24 LTS and npm registry access:
+With Node 24 and registry access:
 
 ```bash
 npm ci
-npm run check
-npm run dev
+npm run typecheck
+npm run lint
+npm test
+npm run e2e
+npm run build
+npm run verify:fixtures
+npm run release:check
 ```
 
-For browser E2E:
+## Testing
 
-```bash
-npm run test:e2e
-```
+Tier-A coverage is authored across:
 
-### Build-environment note
+- `tests/unit/` — calculation boundaries and input parsing
+- `tests/domain/` — protocol/state/blinding/revision/update rules
+- `tests/persistence/` — CAS, integrity, malformed records and schema compatibility
+- `tests/claims/` — privacy, synthetic-only and prohibited-claim guards
+- `tests/fixtures/` — Cadre A/B/C/Invalid Reference
+- `e2e/` — blinding, recovery, two-tab CAS, offline workflow, update safety, demo and mobile/accessibility checks
 
-The environment used to assemble this repository provided Node `22.16.0` and had no network path to `registry.npmjs.org` (`EAI_AGAIN`). I therefore **do not claim** that `npm ci`, Vite build, Vitest, or Playwright passed here. The committed lockfile is a bootstrap manifest and must be regenerated once with registry access before it becomes the reproducible release lock. See `docs/test-evidence.md` for exactly what was and was not executed.
+M03/M04 authoritative external golden fixtures remain intentionally blocked by `EXTERNAL_ORACLE_PARITY_PENDING` rather than fabricated.
 
-## State machine
+## Repository history / release gates
 
-```text
-DRAFT
-  ↓
-SETUP_VALID
-  ↓
-ROUND1_OPEN → ROUND1_LOCKED
-  ↓
-ROUND2_OPEN → ROUND2_LOCKED
-  ↓
-REFERENCE_OPEN → REFERENCE_LOCKED
-  ↓
-READY_TO_CALCULATE
-  ↓
-RESULT_VALID
-  ↓
-REMEDIATION
-  ↓
-CLOSED
-```
+The repository preserves additive Git history. Tags are created only for gates with executed evidence. See:
 
-Re-standardization creates a **new** session linked with `parentSessionId`. Closed historical sessions are not reopened.
+- `git log --oneline --decorate --graph --all`
+- `git tag --list`
+- `docs/test-evidence.md`
 
-## Integrity model
+The existing verified tags are V0.0/V0.1-era tags. Later gates must not be tagged until their required Node 24/npm/browser commands actually pass.
 
-Correctness does not depend on `BroadcastChannel`. Every persisted session write uses revision compare-and-swap semantics. A stale writer receives `STALE_REVISION`.
+## Limitations
 
-SHA-256 is used for accidental-corruption/consistency verification and export integrity. This is **not tamper-proof storage** against a malicious local device owner.
+- Exact WHO/UNICEF/DHS Annex-13 reference-agreement parity is pending the authoritative external oracle.
+- This environment does not provide the locked Node 24 runtime.
+- Registry connectivity is unavailable here, so dependency installation and browser-backed release verification cannot honestly be reported as passed in this environment.
+- The current `package-lock.json` remains a bootstrap lock until it can be regenerated/validated with registry access.
+- Competition data are synthetic only; real programme deployment requires privacy/security/programme validation beyond this prototype.
 
-## Round-2 blinding claim
+## Future work
 
-The safe claim is:
+`POST_HACKATHON`
 
-> The application enforces blinded measurement in the normal assessment workflow: Round-1 values are not exposed to the Round-2 entry interface.
-
-This is workflow blinding, not cryptographic secrecy against unrestricted DevTools access.
-
-## Repository guide
-
-- `src/domain/calculation/` — pure TypeScript math, independent of UI/storage/browser APIs
-- `src/domain/protocol/` — working profile, invariants, evaluator, claim metadata
-- `src/domain/session/` — state machine and blind DTO selectors
-- `src/data/` — Dexie persistence, CAS repository, export integrity
-- `src/features/` — narrow workflow UI
-- `src/fixtures/` — deterministic synthetic demo
-- `tests/` — unit/domain/persistence/claim tests
-- `e2e/` — Playwright acceptance specifications
-- `docs/` — scientific boundary, claims, demo script, judge Q&A, test evidence
-
-## POST_HACKATHON
-
-Anything outside the locked competition scope belongs here rather than in V0.9. No post-hackathon features are implemented in this repository.
+Only after competition release lock: programme validation, authoritative oracle parity audit, and any official-system integration discussions. No AI, cloud backend, diagnosis, growth monitoring, FHIR/SATUSEHAT/ASIK integration, dashboards or analytics are part of V1.

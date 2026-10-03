@@ -1,15 +1,17 @@
 # Claims matrix
 
-| Claim | Status | Evidence in repository |
-|---|---|---|
-| Round-2 normal workflow hides Round-1 values | Implemented | `BlindRoundSubjectDTO`, selector, UI copy, claim test |
-| Stale concurrent writes are rejected | Implemented | revision CAS in `SessionRepository` |
-| BroadcastChannel is correctness-independent | Implemented | channel only warns; repository CAS enforces correctness |
-| Existing session uses snapshotted protocol | Implemented in model | `protocolSnapshot`, `protocolVersion`, `protocolHash` |
-| Result revision must equal session revision | Implemented | transition and invariant |
-| Reference agreement withheld when reference repeatability fails | Implemented | evaluator + results UI |
-| Core workflow needs no runtime network after cached load | Designed/implemented via PWA shell | Requires browser E2E verification after dependency install |
-| IndexedDB survives browser restart | Storage architecture implemented | Requires browser E2E verification after dependency install |
-| Application history is tamper-proof | **Not claimed** | Wording restricted to application-level revision history with integrity checks |
-| WHO/DHS Annex-13 exact agreement parity | **Not claimed** | `EXTERNAL_ORACLE_PARITY_PENDING` |
-| Official Kemenkes certification workflow | **Not claimed** | README/UI/docs disclaimer |
+| Claim | Evidence | Source/boundary | Safe wording | Unsafe wording | Demo proof |
+|---|---|---|---|---|---|
+| Offline core workflow | Workbox precache configuration + offline Playwright journey | TumbuhGuard implementation | “After the application has successfully loaded once and cached its shell, the complete standardization workflow works without network connectivity.” | “Works anywhere even if never loaded before.” | Warm app, disconnect network, finish Cadre C and create re-standardization |
+| Workflow blinding | `BlindRoundSubjectDTO`, selector, state-only UI, Playwright back/navigation test | TumbuhGuard workflow | “Round-1 values are not exposed in the normal Round-2 entry workflow.” | “Cryptographically impossible to access previous values.” | Cadre C Round 2 shows no `95.8` Round-1 value |
+| Revision integrity | Session revision CAS, stale-tab rejection, SHA-256 checks | TumbuhGuard data layer | “Application-level revision history with integrity checks.” | “Tamper-proof.” | Two tabs attempt revision-0 save; second receives `STALE_REVISION` |
+| Protocol snapshot | `protocolSnapshot`, `protocolVersion`, `protocolHash` + hash release check | TumbuhGuard protocol layer | “Each session evaluates against its snapshotted competition profile.” | “Historical sessions automatically use the newest official thresholds.” | Evidence → Protocol shows version/hash |
+| Reference validity | Reference repeatability TEM gate; agreement withheld when invalid | Working competition profile | “Reference agreement assessment is unavailable when the reference-measurer repeatability gate fails.” | “The trainee failed reference agreement even though the reference was invalid.” | Invalid Reference fixture suppresses agreement verdict |
+| Repeatability TEM | Pure calculation engine + boundary tests | Established anthropometric standardization concept; exact external sources not supplied here | “TumbuhGuard implements deterministic paired repeatability TEM.” | “TumbuhGuard invented TEM.” | Cadre C repeatability ≈ `0.071 cm` |
+| Reference agreement | Working quadratic difference of trainee/reference subject means | **EXTERNAL_ORACLE_PARITY_PENDING** | “Working competition reference-agreement formula pending authoritative oracle parity audit.” | “Proven WHO/DHS Annex-13 calculator parity.” | Cadre C working agreement ≈ `0.849 cm` with warning visible |
+| Signed difference | Mean trainee subject mean − reference subject mean; cancellation test | TumbuhGuard descriptive evidence using locked formula | “Directional difference is descriptive evidence only.” | “Near-zero mean difference proves good agreement.” | Cadre B has signed difference ≈ `0` but poor repeatability |
+| Posyandu context | Product framing and supervisor workflow | User-supplied competition specification; official programme validation not supplied | “Designed as a proposed practical QA workflow for the Posyandu cadre-training context.” | “Official Kemenkes certification system.” | Setup/result footer clearly says prototype/not official certification |
+| WHO/UNICEF alignment | Anthropometric standardization training/QA framing | User-supplied project specification; parity audit pending | “WHO/UNICEF-aligned anthropometry standardization training and QA.” | “WHO-certified cadre.” | Home/profile badge + scientific-boundary warning |
+| Synthetic-only privacy | Fixtures/export metadata; no NIK/name/photo inputs | Competition scope | “Competition build uses synthetic data only and requires no real PII.” | “Approved for real patient/child records.” | Home SYNTHETIC badge + exported `dataMode: SYNTHETIC` |
+| No causal blame | Results language + observation evidence separation | TumbuhGuard evidence policy | “Reference disagreement detected. Review measurement technique and equipment conditions.” | “The cadre used the equipment incorrectly.” | Results preserves measurements/equipment/observations without assigning cause |
+| No AI | Dependency/runtime/source guards | Competition scope | “No AI is used in this application.” | “AI-powered measurement diagnosis.” | Repository/runtime has no model/API dependency |

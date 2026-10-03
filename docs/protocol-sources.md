@@ -1,38 +1,69 @@
 # Protocol sources and scientific boundary
 
-## Status
+## Source status
 
-The repository intentionally separates the **working competition profile** from claims of authoritative formula parity.
+The supplied project material defines the product/scientific positioning but does **not** include the authoritative Annex-13/DHS oracle workbook needed to prove exact reference-agreement implementation parity.
+
+Therefore the repository records:
 
 `EXTERNAL_ORACLE_PARITY_PENDING`
 
-The supplied build environment did not contain an Annex-13/DHS oracle workbook or other project source material proving exact reference-agreement implementation parity. Therefore this prototype **does not claim** that its working reference-agreement formula reproduces a WHO, UNICEF, DHS, or Kemenkes official calculator.
+No external scientific authority has been fabricated to fill that gap.
 
-## Safe positioning
+## Kemenkes context
 
-- Designed as a proposed practical QA workflow for the Posyandu cadre-training context.
-- WHO/UNICEF-aligned anthropometry standardization training and QA.
-- Not an official Kemenkes certification system.
-- Not a WHO-certified cadre workflow.
+Used for the **Indonesian Posyandu / health-cadre practical-skill context** described by the project specification.
 
-## Working thresholds
+Safe use:
 
-The competition profile uses strict raw-value comparisons:
+- cadre-training context
+- practical measurement-skill QA context
 
-- trainee repeatability TEM `< 0.6 cm`
-- trainee/reference agreement TEM `< 0.8 cm`
-- reference repeatability TEM `< 0.4 cm`
+Not claimed:
 
-Display rounding never determines pass/fail.
+- Kemenkes certification
+- official Kemenkes workflow
+- Kemenkes authorship/mandate of this competition profile’s exact TEM thresholds
 
-## Formula implemented with verified local tests
+## WHO / UNICEF / DHS context
 
-Repeatability TEM:
+Used for the **anthropometric measurement-standardization methodology framing** described by the project specification.
 
-`TEM = sqrt(sum(d_i^2) / (2N))`
+Safe positioning:
 
-where `d_i` is the difference between repeated measurements for the same subject ID.
+- “WHO/UNICEF-aligned anthropometry standardization training and QA.”
+- “WHO/UNICEF-aligned standardization exercise profile.”
 
-The reference-agreement implementation currently applies the same quadratic-difference structure to trainee/reference subject means. This is a **project working formula only** pending oracle parity verification.
+The working reference-agreement implementation uses subject-level trainee/reference means and a quadratic-difference TEM structure because that formula is locked by this project build. It must not be presented as verified Annex-13/DHS parity until an authoritative oracle is supplied and checked.
 
-Signed mean difference is descriptive evidence only and is tested specifically for cancellation.
+## TumbuhGuard contribution
+
+TumbuhGuard provides the operational layer:
+
+- guided protocol orchestration
+- explicit state/invariant enforcement
+- blinded normal Round-2 workflow
+- reference-measurer validity gate
+- station/device/position provenance
+- observation evidence
+- revision CAS and recovery integrity
+- offline implementation
+- remediation and linked re-standardization
+
+TumbuhGuard does **not** claim to have invented TEM or anthropometric standardization.
+
+## Working competition profile
+
+Strict raw-value boundaries:
+
+```text
+trainee repeatability TEM < 0.6 cm
+reference agreement TEM < 0.8 cm
+reference repeatability TEM < 0.4 cm
+```
+
+Display rounding never determines classification.
+
+Competition age composition is project-defined for the synthetic demo: five subjects under 24 months and five at/over 24 months. It is not described as an official programme rule.
+
+No automatic ±0.7 cm conversion is implemented. Expected/actual measurement position is preserved as evidence instead.

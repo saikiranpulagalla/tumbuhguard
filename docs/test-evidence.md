@@ -1,26 +1,145 @@
 # Test evidence
 
-## Verified in this build environment
+Evidence captured for the continuation audit of **TumbuhGuard Standardize** on 2026-10-03. This document records only commands that were actually run in this environment.
 
-- Node runtime available: `v22.16.0` (locked target is Node 24 LTS; target-runtime parity is **not verified** here).
-- Global TypeScript compiler: `5.8.3`.
-- Pure calculation/domain TypeScript compiled with strict flags.
-- Executed local math smoke check:
-  - constant 0.2 cm paired difference -> TEM `0.141421356237...`
-  - alternating +1/-1 trainee/reference differences -> signed difference `0`, agreement error `0.707106781186...`
-- Deterministic fixture verified by compiled JS:
-  - trainee TEM `0.141421356237...`
-  - reference repeatability TEM `0.070710678118...`
-  - working agreement TEM `0`
+## Environment
 
-## Not verified in this environment
+| Item | Observed |
+|---|---|
+| Runtime | Node `v22.16.0` |
+| Locked target | Node 24 LTS (`>=24 <25`) |
+| npm | `10.9.2` |
+| Global TypeScript | `5.8.3` |
+| Registry | unavailable from this environment (`registry.npmjs.org`; `npm ci` timed out / prior probe returned `EAI_AGAIN`) |
+| External anthropometry oracle | not supplied |
 
-The npm registry was unreachable (`EAI_AGAIN registry.npmjs.org`), so project dependencies could not be installed. Consequently these commands are authored but **not claimed as passed** here:
+Node-24 runtime parity and registry-backed dependency installation are therefore **not verified** here.
 
-- `npm ci`
-- `npm run typecheck`
-- `npm test`
-- `npm run build`
-- `npm run test:e2e`
+## Executed checks
 
-The committed `package-lock.json` is a bootstrap lock manifest only; npm could not hydrate/validate its full transitive metadata without registry access. Under Node 24 LTS with registry access, run `npm install` once to regenerate a complete lock, commit that regenerated lock, then use `npm ci` for all subsequent verification. Do not treat the current lock as release-validated.
+### Dependency-free domain/source gate — PASS
+
+Command:
+
+```bash
+node scripts/domain-smoke.mjs
+```
+
+The script compiles the actual dependency-free project domain/application/fixture TypeScript with strict flags, then executes assertions. Latest result:
+
+```text
+status: PASS
+compiled source files: 20
+Cadre A precision TEM: 0.07071067811865074
+Cadre A reference agreement TEM: 0
+Cadre B precision TEM: 1.4849242404917458
+Cadre B signed difference: 0
+Cadre C precision TEM: 0.07071067811865475
+Cadre C reference agreement TEM: 0.848528137423857
+Cadre C signed difference: -1.2
+Invalid Reference referenceValid: false
+Invalid Reference referenceTEM: null
+EXTERNAL_ORACLE_PARITY_PENDING
+```
+
+The executed assertions additionally cover:
+
+- identical-repeat TEM = 0
+- constant 0.2 cm difference TEM ≈ 0.141421356
+- raw strict threshold boundaries at 0.6 / 0.8 / 0.4
+- a raw TEM of 0.59996 displaying as 0.600 while still passing
+- cancellation: signed difference 0 does not imply low disagreement
+- subject-order independence
+- duplicate subject IDs rejected by the calculation layer
+- decimal comma normalization and malformed/range input rejection
+- setup-integrity validation
+- illegal Round-2-before-Round-1 transition rejection
+- blind Round-2 DTO does not contain `round1Value`
+- duplicate measurement submission rejection
+- calculation before ready state rejected
+- linked re-standardization creates a new child and leaves the parent state unchanged
+
+### Source hygiene — PASS
+
+A dependency-free mirror of `scripts/lint-source.ts` was executed over `src/`, `tests/`, and `e2e/`:
+
+```text
+PASS 68 source/test files
+```
+
+It checks trailing whitespace, tab characters, `@ts-ignore`, and unsafe `as any` casts. `git diff --check` also passes.
+
+### TypeScript syntax parse — PASS
+
+The globally installed TypeScript parser parsed all TypeScript/TSX files in `src/`, `tests/`, `e2e/`, and `scripts/`:
+
+```text
+PASS TypeScript syntax parse 71 TS/TSX files
+```
+
+This is a syntax check only. It is **not** a substitute for the project-local `npm run typecheck` gate.
+
+### Static release guard mirror — PASS
+
+A dependency-free release audit was run against repository files. It verified:
+
+- Node 24 engine lock is declared
+- required `typecheck`, `lint`, `test`, `e2e`, and `build` scripts exist
+- build metadata contains the external-oracle boundary
+- the public demo seed contains exactly four explicit synthetic fixtures
+- no positive banned certification/diagnosis claim appears in runtime source
+- no `fetch`, `XMLHttpRequest`, `WebSocket`, or `axios` runtime path exists in `src/`
+- safe integrity and blinding wording exists in the claims matrix
+- required release-audit artifacts exist
+
+Result:
+
+```text
+staticReleaseGuard: PASS
+fixtureCount: 4
+runtimeNetworkCalls: none found
+externalOracleParity: EXTERNAL_ORACLE_PARITY_PENDING
+```
+
+The project-local `scripts/release-check.ts` contains the stronger equivalent check and is intended to run through `npm run release:check` once dependencies are available.
+
+### Git structural check — PASS before continuation commits
+
+`git fsck --full` passed when the inherited repository was opened. Final Git fsck, bundle verification, ZIP content verification, and fresh extraction checks are recorded again after the continuation commits.
+
+## Authored but not executable in this environment
+
+The deeper Tier-A suite is authored in Vitest/Playwright, including mathematics/input/protocol/persistence/privacy and browser recovery/offline/concurrency/update/accessibility journeys. These release commands are **not claimed as passed** because packages cannot be restored here:
+
+```bash
+npm ci
+npm run typecheck
+npm run lint
+npm test
+npm run e2e
+npm run build
+npm run verify:fixtures
+npm run release:check
+```
+
+An explicit `npm ci --ignore-scripts` retry on 2026-10-03 also timed out while registry access was unavailable.
+
+The current `package-lock.json` contains only the root dependency declaration and has not been hydrated/validated into a full reproducible dependency graph. Under Node 24 with registry access, regenerate the complete lock once, commit it, and then use `npm ci` for release validation.
+
+## External-oracle status
+
+Two authoritative golden parity cases (M03/M04) cannot be truthfully completed because the Annex-13/DHS oracle workbook/source material is not present. They remain:
+
+```text
+EXTERNAL_ORACLE_PARITY_PENDING
+```
+
+The project must not claim exact WHO/DHS formula parity until those cases are verified against the authoritative oracle.
+
+## Gate status
+
+- `gate-v0.0-calculation` — inherited tag; dependency-free calculation evidence remains green, with external oracle parity explicitly pending.
+- `gate-v0.1-domain` — inherited tag; dependency-free domain kernel evidence remains green.
+- V0.2 through V0.9 — implementation/test coverage has been substantially expanded, but **no new gate tag is created in this environment** because the required npm/Vitest/Playwright/production-build evidence is unavailable.
+
+This is intentionally stricter than treating authored tests as executed tests.

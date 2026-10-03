@@ -1,10 +1,107 @@
-# 4-minute judge demo
+# 90-second judge demo — Cadre C
 
-1. **Problem (30 s)** — A measurement can be consistent and still be wrong. Recording systems do not necessarily validate measurement technique.
-2. **Setup (25 s)** — Show 10 synthetic subjects, fixed stations, one device, trainee and qualified reference, and a snapshotted protocol profile.
-3. **Round 1 (40 s)** — Record first trainee measurements and lock the round.
-4. **Blinded Round 2 (35 s)** — Emphasize that Round-1 values are intentionally absent. Refresh once to show local recovery.
-5. **Reference + evidence (45 s)** — Enter two reference repeats per subject and three observed-skill checks.
-6. **Result (45 s)** — Show trainee repeatability, reference validity, agreement only when the reference gate passes, and signed difference as descriptive evidence.
-7. **Integrity (20 s)** — Mention IndexedDB, CAS stale-write rejection, export hash, protocol snapshot, and offline-after-warmup design.
-8. **Close (20 s)** — “Excel can calculate the result. TumbuhGuard manages whether the result was produced through a valid assessment workflow.”
+## 0–10 sec
+
+Say:
+
+> **“A measurement can be consistent and still disagree with a qualified reference.”**
+
+On Home, point to:
+
+- SYNTHETIC DEMO
+- OFFLINE READY — only if the cache-ready badge is genuinely present
+- WHO/UNICEF-ALIGNED PROFILE
+
+Click **Run 90-sec Demo**.
+
+## 10–30 sec
+
+The app opens **Blinded repeat measurement** at 9/10 completed Cadre C repeats.
+
+Point out:
+
+> “Round-1 values are intentionally unavailable in this entry workflow.”
+
+Enter the final S10 repeat:
+
+```text
+95.9 cm
+```
+
+Round-1 S10 was `95.8 cm`, but it is not shown here.
+
+Say:
+
+> **“The app isn't only calculating a score; it enforces the measurement protocol.”**
+
+Lock Round 2.
+
+## 30–45 sec
+
+Open the qualified-reference stage and click **Load synthetic reference fixture**.
+
+Explain that this button is demo acceleration for locked synthetic data; it is not a hidden production measurement source.
+
+Lock reference measurements and evidence, then calculate.
+
+## 45–60 sec
+
+Show:
+
+```text
+Trainee repeatability TEM
+≈ 0.071 cm
+PASS
+```
+
+Say:
+
+> “The measurer is highly consistent.”
+
+## 60–72 sec
+
+Show:
+
+```text
+Reference agreement TEM
+≈ 0.849 cm
+NEEDS RE-STANDARDIZATION
+```
+
+and directional difference:
+
+```text
+≈ -1.200 cm
+DESCRIPTIVE ONLY
+```
+
+Say:
+
+> **“Consistency does not necessarily mean sufficient agreement with a qualified reference.”**
+
+## 72–82 sec
+
+Open the evidence tabs:
+
+- Measurements
+- Observation
+- Equipment
+- Protocol
+
+Say:
+
+> **“We don't guess the cause. We preserve evidence for supervisor review.”**
+
+Point to `EXTERNAL_ORACLE_PARITY_PENDING` if scientific parity is discussed.
+
+## 82–88 sec
+
+Click **Review & create re-standardization**, optionally add a supervisor note, then click **Create Re-standardization**.
+
+Show the linked new Setup session. The parent is preserved and not reopened/overwritten.
+
+## 88–90 sec
+
+Finish:
+
+> **“Validate the measurer, not just the measurement.”**

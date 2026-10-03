@@ -16,7 +16,9 @@
     "verify:fixtures": "tsx scripts/verify-fixtures.ts",
     "seed:demo": "tsx scripts/create-demo-seed.ts",
     "release:check": "tsx scripts/release-check.ts",
-    "check": "npm run typecheck && npm run test && npm run build && npm run verify:fixtures && npm run release:check"
+    "check": "npm run typecheck && npm run lint && npm test && npm run build && npm run verify:fixtures && npm run release:check",
+    "lint": "tsx scripts/lint-source.ts",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@vitejs/plugin-react": "5.0.4",
