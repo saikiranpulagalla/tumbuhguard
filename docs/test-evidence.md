@@ -29,7 +29,7 @@ The script compiles the actual dependency-free project domain/application/fixtur
 
 ```text
 status: PASS
-compiled source files: 23
+compiled source files: 24
 Cadre A precision TEM: 0.07071067811865475
 Cadre A reference agreement TEM: 0
 Cadre B precision TEM: 1.4849242404917498
@@ -52,22 +52,23 @@ The executed assertions additionally cover:
 - subject-order independence
 - duplicate subject IDs rejected by the calculation layer
 - decimal comma normalization and malformed/range input rejection
-- setup-integrity validation
-- illegal Round-2-before-Round-1 transition rejection
-- blind Round-2 DTO does not contain `round1Value`
+- P01–P10 pure protocol/state cases: subject count/composition, duplicate subject/station, provenance, illegal transition, incomplete lock, post-lock edit rejection and blind DTO field exclusion
+- P13–P18 pure protocol/state cases: measurer collision, early calculation, invalid-reference suppression, station-change review, protocol snapshot retention and linked re-standardization
+- exact 24-month boundary maps to `AT_OR_OVER_24_MONTHS` / `STANDING`
 - duplicate measurement submission rejection
-- calculation before ready state rejected
-- linked re-standardization creates a new child and leaves the parent state unchanged
+- D10 stale-result revision detection
+- linked re-standardization creates a new child and leaves the parent unchanged
 - active-session service-worker update reloads are deferred
 - missing/unknown schema markers with existing records are rejected by pure schema policy
 - the public demo seed exactly matches the source fixtures and remains explicitly synthetic
+- S04 backup export metadata is explicitly synthetic and SHA-256 verification detects a tampered hash
 
 ### Source hygiene — PASS
 
-A dependency-free mirror of `scripts/lint-source.ts` was executed over `src/`, `tests/`, and `e2e/`:
+A dependency-free mirror of `scripts/lint-source.ts` was executed over `src/`, `tests/`, `e2e/`, and `scripts/`:
 
 ```text
-PASS 71 source/test files
+PASS 77 source/test/script files
 ```
 
 It checks trailing whitespace, tab characters, `@ts-ignore`, and unsafe `as any` casts. `git diff --check` also passes.
@@ -101,14 +102,30 @@ Latest result:
 
 ```text
 staticAudit: PASS
-requiredArtifacts: 23
+requiredArtifacts: 27
 fixtureCount: 4
 runtimeNetworkCalls: none found
+runtimeRemoteUrls: none found
+competitionPiiMediaInputs: none found
+unsafePositiveRuntimeClaims: none found
 nodeObserved: v22.16.0
 lockResolved: false
 ```
 
 This is deliberately **not** the competition release check. `scripts/release-check.ts` now refuses to pass unless it is executed on Node 24 and the lockfile contains resolved entries for every declared direct dependency. With the current bootstrap lock and Node 22, a release pass is impossible by design.
+
+
+### RC.3 dependency-free package smoke — PASS
+
+After expanding the pure Tier-A and static audits, the package-level command was executed:
+
+```bash
+npm run test:smoke
+```
+
+It passed both `scripts/domain-smoke.mjs` and `scripts/static-smoke.mjs`. The domain smoke compiled/executed 24 dependency-free project source files. The static smoke scanned 48 runtime files and 27 required release artifacts. It explicitly reported `lockfileResolved: false`, so this result cannot be confused with the Node-24 competition release gate.
+
+RC.3 build metadata is `tg-2026-10-03-rc.3`.
 
 ### Git structural check — PASS before continuation commits
 

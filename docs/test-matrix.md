@@ -28,9 +28,9 @@ Primary files: `tests/unit/tier-a-math.test.ts`, `tests/unit/calculation.test.ts
 
 | ID | Coverage | Status |
 |---|---|---|
-| P01–P10 | subject/setup/transition/blinding invariants | AUTHORED_REQUIRES_NPM; setup, illegal transition and blind-DTO non-leak subset executed |
+| P01–P10 | subject/setup/transition/blinding invariants | EXECUTED_NO_DEPS_PASS |
 | P11–P12 | browser Back/direct workflow cannot expose R1 during R2 | AUTHORED_REQUIRES_NPM (`e2e/blinded-round.spec.ts`) |
-| P13–P18 | role collision, early calculation, invalid reference, station review, protocol snapshot, linked re-standardization | AUTHORED_REQUIRES_NPM; P14/P18 smoke subset executed; replacement preserves old station provenance |
+| P13–P18 | role collision, early calculation, invalid reference, station review, protocol snapshot, linked re-standardization | EXECUTED_NO_DEPS_PASS |
 
 Primary file: `tests/domain/tier-a-protocol.test.ts`.
 
@@ -51,7 +51,7 @@ Primary file: `tests/unit/input-tier-a.test.ts`.
 | D07 | stale two-tab save rejected | AUTHORED_REQUIRES_NPM (`tests/persistence/cas.test.ts`, `e2e/concurrency.spec.ts`); linked-child CAS stale-parent case authored |
 | D08 | malformed stored record handled safely | AUTHORED_REQUIRES_NPM (`tests/persistence/schema.test.ts`) |
 | D09 | missing marker with records, unknown marker, or physically newer IndexedDB version produces safe compatibility failure | Pure schema-policy subset EXECUTED_NO_DEPS_PASS; IndexedDB cases AUTHORED_REQUIRES_NPM (`tests/persistence/schema.test.ts`) |
-| D10 | stale result detected | AUTHORED_REQUIRES_NPM (`tests/domain/revision.test.ts` + stored cross-field guard) |
+| D10 | stale result detected | EXECUTED_NO_DEPS_PASS for result/session revision invariant; persisted-recovery UI remains AUTHORED_REQUIRES_NPM |
 
 ## Offline
 
@@ -60,17 +60,17 @@ Primary file: `tests/unit/input-tier-a.test.ts`.
 | O01–O07 | warm-cache launch through offline re-standardization/recovery | AUTHORED_REQUIRES_NPM (`e2e/offline.spec.ts`) |
 | O08 | update checks do not force reload; update policy defers active workflow | Update-policy subset EXECUTED_NO_DEPS_PASS; browser service-worker path AUTHORED_REQUIRES_NPM (`e2e/update.spec.ts`, `tests/domain/update-safety.test.ts`) |
 | O09 | persistent-storage denial non-fatal | AUTHORED_REQUIRES_NPM (`e2e/offline.spec.ts`) |
-| O10 | core runtime contains no fetch/XHR/WebSocket/axios path | Static release guard authored; browser verification requires npm |
+| O10 | core runtime contains no fetch/XHR/WebSocket/axios path | EXECUTED_NO_DEPS_PASS static runtime scan; browser offline behavior remains AUTHORED_REQUIRES_NPM |
 
 ## Privacy / claims
 
 | ID | Coverage | Status |
 |---|---|---|
-| S01–S03 | no NIK/real child name/photo requirement | AUTHORED_REQUIRES_NPM static claim test |
-| S04 | export explicitly synthetic | AUTHORED_REQUIRES_NPM |
-| S05–S06 | no prohibited certification claims | AUTHORED_REQUIRES_NPM + release guard |
-| S07 | no unsupported causal blame | AUTHORED_REQUIRES_NPM + release guard |
-| S08 | no healthcare/cloud/API runtime dependency | Static release guard authored |
+| S01–S03 | no NIK/real child name/photo requirement | EXECUTED_NO_DEPS_PASS static feature/runtime scan |
+| S04 | export explicitly synthetic | EXECUTED_NO_DEPS_PASS including backup hash verification |
+| S05–S06 | no prohibited certification claims | EXECUTED_NO_DEPS_PASS static runtime scan; Vitest coverage also authored |
+| S07 | no unsupported causal blame | EXECUTED_NO_DEPS_PASS static runtime scan; Vitest coverage also authored |
+| S08 | no healthcare/cloud/API runtime dependency | EXECUTED_NO_DEPS_PASS static runtime scan |
 
 Primary file: `tests/claims/privacy-claims.test.ts`.
 

@@ -149,7 +149,15 @@ It is not protection against a malicious owner of the same local device.
 
 ## Privacy
 
-The competition build is **synthetic-only**.
+The competition build is **synthetic-only**. All demo data are synthetic.
+
+Explicit competition-build boundaries:
+
+- no medical diagnosis
+- no official certification
+- no real PII required
+- no AI used
+- methodology requires programme validation before official deployment
 
 It does not require NIK, real child names, photos, addresses, phone numbers, medical-record identifiers, or any real health information. Exports explicitly contain:
 
