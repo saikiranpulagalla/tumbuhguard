@@ -18,8 +18,14 @@ sources.push(
   join(root,'src/data/export/session-export.ts'),
   join(root,'src/fixtures/demo.ts'),
 );
-const compile=spawnSync('tsc',['--strict','--noUncheckedIndexedAccess','--exactOptionalPropertyTypes','--target','ES2022','--module','CommonJS','--moduleResolution','Node','--lib','ES2022,DOM','--outDir',out,...sources],{encoding:'utf8'});
-if(compile.status!==0){process.stderr.write(compile.stdout);process.stderr.write(compile.stderr);process.exit(compile.status??1)}
+const compile=spawnSync('tsc',['--strict','--noUncheckedIndexedAccess','--exactOptionalPropertyTypes','--target','ES2022','--module','CommonJS','--moduleResolution','Node','--lib','ES2022,DOM','--outDir',out,...sources],{encoding:'utf8',shell:process.platform === 'win32'});
+if(compile.status!==0){
+  if (compile.error) process.stderr.write(`Unable to start TypeScript compiler: ${compile.error.message}\n`);
+  process.stderr.write(compile.stdout ?? '');
+  process.stderr.write(compile.stderr ?? '');
+  if (!compile.error && !compile.stdout && !compile.stderr) process.stderr.write(`TypeScript compiler exited with status ${compile.status ?? 'unknown'}${compile.signal ? ` (signal ${compile.signal})` : ''}.\n`);
+  process.exit(compile.status ?? 1);
+}
 
 const require=createRequire(import.meta.url);
 const calc=require(join(out,'domain/calculation/index.js'));

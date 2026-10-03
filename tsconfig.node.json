@@ -9,5 +9,8 @@
     "strict": true,
     "types": ["node"]
   },
+  "references": [
+    { "path": "./tsconfig.app.json" }
+  ],
   "include": ["vite.config.ts", "vitest.config.ts", "playwright.config.ts", "scripts"]
 }
