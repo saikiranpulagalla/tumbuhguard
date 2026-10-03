@@ -17,7 +17,8 @@ const forbiddenTsIgnore='@ts-'+'ignore';
 const unsafeAny=new RegExp('\\bas '+'any\\b');
 for (const file of files) {
   const body=await readFile(file,'utf8');
-  body.split('\n').forEach((line,index)=>{
+  body.split('\n').forEach((rawLine,index)=>{
+    const line=rawLine.endsWith('\r') ? rawLine.slice(0,-1) : rawLine;
     if (/\s+$/.test(line)) failures.push(`${file}:${index+1}: trailing whitespace`);
     if (line.includes('\t')) failures.push(`${file}:${index+1}: tab character`);
     if (line.includes(forbiddenTsIgnore)) failures.push(`${file}:${index+1}: ${forbiddenTsIgnore} is not allowed`);
