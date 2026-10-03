@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { selectBlindRoundSubjects } from '../../src/domain/session/selectors';
+import { transition } from '../../src/domain/session/transition';
 import type { Session } from '../../src/domain/session/state';
 import { WORKING_STANDARDIZATION_PROFILE } from '../../src/domain/protocol/profile';
+import { createCadreCFastDemoSession, createDemoSession } from '../../src/fixtures/demo';
 
 it('round-2 DTO contains no prior values or verdicts', () => {
   const now = new Date().toISOString();
@@ -17,6 +19,11 @@ it('round-2 DTO contains no prior values or verdicts', () => {
   };
   const dto = selectBlindRoundSubjects(session)[0]!;
   expect(dto).toEqual({subjectId:'s',subjectLabel:'Subject 01',stationId:'st',stationLabel:'Station 01',expectedPosition:'RECUMBENT'});
-  expect(Object.keys(dto)).not.toContain('round1Value');
+  expect(Object.keys(dto).sort()).toEqual(['expectedPosition','stationId','stationLabel','subjectId','subjectLabel']);
   expect(JSON.stringify(dto)).not.toContain('80');
+});
+
+it('BL10-BL11 state transitions block Round 2 before Round 1 lock and Round 1 reopening during Round 2', () => {
+  expect(() => transition(createDemoSession(), { type: 'OPEN_ROUND_2' })).toThrow(expect.objectContaining({ code: 'INVALID_TRANSITION' }));
+  expect(() => transition(createCadreCFastDemoSession(), { type: 'OPEN_ROUND_1' })).toThrow(expect.objectContaining({ code: 'INVALID_TRANSITION' }));
 });

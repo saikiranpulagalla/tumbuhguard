@@ -291,3 +291,16 @@ These failures are dependency-restoration/runtime blockers and are not converted
 # Position-validity release note
 
 PV01-PV06 verify matching positions, every trainee/reference round mismatch, multiple deviations, and inactive replacement history. The Cadre A attack case retains passing raw metrics but withholds the verdict when position is mismatched.
+
+## Phase 5 — Round-2 structural blinding
+
+Executed on 2026-10-03 under Node `v24.19.0` / npm `10.9.0` after commit `8baff69`.
+
+- `npm run typecheck` — PASS
+- `npm run lint` — PASS (`82` source/test files)
+- `npm test` — PASS three consecutive times: `19` files, `99` passed, `2` intentional external-oracle skips
+- `npm run build` — PASS; PWA generated `dist/sw.js`, Workbox runtime, manifest and local assets
+
+The Round-2 presentation receives an explicit allow-list projection only: `subjectId`, `subjectLabel`, `stationId`, `stationLabel`, and `expectedPosition`. It receives no `Session`, measurement collection, Round-1 value, reference value, result, repository, or database object. Unit coverage verifies DTO keys, DOM/ARIA absence of Round-1 values, and state-transition rejection of entering Round 2 early or reopening Round 1 during Round 2.
+
+Production-preview Playwright coverage was extended for Back, Forward, reload, reopen, and second-tab checks, but this environment's Playwright web-server invocation did not complete within its bounded Windows command transport. Those browser checks remain **BLOCKED**, not passed.

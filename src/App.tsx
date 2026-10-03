@@ -18,6 +18,7 @@ import { createCadreCFastDemoSession, createDemoSession, referenceFixtureMeasure
 import { HomePanel } from './features/home/HomePanel';
 import { SetupPanel } from './features/setup/SetupPanel';
 import { RoundPanel } from './features/round-one/RoundPanel';
+import { RoundTwoPanel } from './features/round-two/RoundTwoPanel';
 import { ReferencePanel } from './features/reference/ReferencePanel';
 import { EvidencePanel } from './features/evidence/EvidencePanel';
 import { ResultsPanel } from './features/results/ResultsPanel';
@@ -250,7 +251,7 @@ export default function App() {
     {session.state==='SETUP_VALID' && <section className="panel callout"><h2>Setup valid</h2><p>Protocol snapshot, 10 synthetic subjects, age composition, station assignments and device provenance are complete.</p><button className="primary" onClick={()=>void apply({type:'OPEN_ROUND_1'},'OPEN_ROUND_1')}>Open Round 1</button></section>}
     {session.state==='ROUND1_OPEN' && <RoundPanel session={session} round={1} rows={activeRows} onRecord={recordTrainee(1)} onLock={()=>void apply({type:'LOCK_ROUND_1'},'LOCK_ROUND_1')}/>}
     {session.state==='ROUND1_LOCKED' && <section className="panel callout"><h2>Round 1 locked</h2><p>Normal editing is blocked. Round 2 opens without exposing Round-1 values.</p><button className="primary" onClick={()=>void apply({type:'OPEN_ROUND_2'},'OPEN_ROUND_2')}>Open blinded Round 2</button></section>}
-    {session.state==='ROUND2_OPEN' && <RoundPanel session={session} round={2} rows={blindRows} blinded onRecord={recordTrainee(2)} onLock={()=>void apply({type:'LOCK_ROUND_2'},'LOCK_ROUND_2')}/>}
+    {session.state==='ROUND2_OPEN' && <RoundTwoPanel subjects={blindRows} completedSubjectIds={session.measurements.filter(measurement => measurement.measurerId === session.trainee.id && measurement.round === 2 && activeSubjects.some(subject => subject.id === measurement.subjectId)).map(measurement => measurement.subjectId)} onRecordMeasurement={input => recordTrainee(2)(input.subjectId, input.stationId, input.valueCm, input.position)} onLockRound={()=>void apply({type:'LOCK_ROUND_2'},'LOCK_ROUND_2')}/>}
     {session.state==='ROUND2_LOCKED' && <section className="panel callout"><h2>Trainee rounds locked</h2><p>Proceed to independent qualified-reference repeat measurements.</p><button className="primary" onClick={()=>void apply({type:'OPEN_REFERENCE'},'OPEN_REFERENCE')}>Open reference measurements</button></section>}
     {session.state==='REFERENCE_OPEN' && <ReferencePanel session={session} onRecord={recordReference} onLock={()=>void apply({type:'LOCK_REFERENCE'},'LOCK_REFERENCE')} {...(session.id==='demo-cadre-c-fast'?{onLoadSyntheticFixture:()=>void loadSyntheticReference()}:{})}/>}
     {session.state==='REFERENCE_LOCKED' && <><EvidencePanel session={session} onAdd={addObservation}/><section className="panel compact"><button className="primary" disabled={!evidenceComplete} onClick={()=>void apply({type:'MARK_READY'},'MARK_READY')}>Lock evidence & prepare calculation</button></section></>}
