@@ -304,3 +304,11 @@ Executed on 2026-10-03 under Node `v24.19.0` / npm `10.9.0` after commit `8baff6
 The Round-2 presentation receives an explicit allow-list projection only: `subjectId`, `subjectLabel`, `stationId`, `stationLabel`, and `expectedPosition`. It receives no `Session`, measurement collection, Round-1 value, reference value, result, repository, or database object. Unit coverage verifies DTO keys, DOM/ARIA absence of Round-1 values, and state-transition rejection of entering Round 2 early or reopening Round 1 during Round 2.
 
 Production-preview Playwright coverage was extended for Back, Forward, reload, reopen, and second-tab checks, but this environment's Playwright web-server invocation did not complete within its bounded Windows command transport. Those browser checks remain **BLOCKED**, not passed.
+
+## Phase 6 — hostile input and persistence race hardening
+
+Node `v24.19.0` / npm `10.9.0`. The hostile measurement corpus executes `25` parser cases: supported whole-string decimal forms pass; ambiguous separators, signs including `-0`, exponent notation, units, partial numeric strings, blank input, and out-of-range values are rejected. No partial parsing is permitted.
+
+Linked re-standardization creation now advances the remediation parent revision atomically with child insertion. A second child request based on the original revision is rejected as `STALE_REVISION`; the stale child record is absent. Targeted persistence tests, typecheck, and lint passed.
+
+Playwright smoke remains **BLOCKED**. Diagnosis: interrupted preview runs left orphaned Vite processes on 4173–4177; after removing those repository-owned processes, Vite preview bound a listener but failed to answer bounded local HTTP requests, while a minimal Node HTTP control server answered immediately. No browser-path result is claimed.
