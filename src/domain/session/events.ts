@@ -1,4 +1,4 @@
-import type { Measurement, Observation, SessionResult } from './state';
+import type { Measurement, Observation, RemediationNote, SessionResult } from './state';
 
 export type SessionEvent =
   | { type: 'VALIDATE_SETUP' }
@@ -13,5 +13,6 @@ export type SessionEvent =
   | { type: 'SET_RESULT'; result: SessionResult }
   | { type: 'ADD_OBSERVATION'; observation: Observation }
   | { type: 'START_REMEDIATION' }
+  | { type: 'ADD_REMEDIATION_NOTE'; note: RemediationNote }
   | { type: 'CLOSE_SESSION' }
   | { type: 'INVALIDATE_RESULT' };

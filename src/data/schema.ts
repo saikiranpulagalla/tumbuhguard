@@ -19,3 +19,4 @@ export interface MetaRecord {
 }
 
 export const DB_SCHEMA_VERSION = 1;
+export const DB_SCHEMA_META_KEY = 'dbSchemaVersion';

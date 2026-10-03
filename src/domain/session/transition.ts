@@ -1,4 +1,5 @@
-import { assertMeasurementUnique, assertMeasurementValue, assertSetupIntegrity, DomainInvariantError } from '../protocol/invariants';
+import { DomainError } from '../errors';
+import { assertMeasurementProvenance, assertMeasurementUnique, assertMeasurementValue, assertSetupIntegrity } from '../protocol/invariants';
 import type { SessionEvent } from './events';
 import type { Session, SessionState } from './state';
 
@@ -13,23 +14,27 @@ const allowed: Readonly<Record<SessionState, readonly SessionEvent['type'][]>> =
   REFERENCE_LOCKED: ['MARK_READY', 'ADD_OBSERVATION'],
   READY_TO_CALCULATE: ['SET_RESULT', 'ADD_OBSERVATION'],
   RESULT_VALID: ['ADD_OBSERVATION', 'START_REMEDIATION', 'CLOSE_SESSION', 'INVALIDATE_RESULT'],
-  REMEDIATION: ['ADD_OBSERVATION', 'CLOSE_SESSION'],
+  REMEDIATION: ['ADD_OBSERVATION', 'ADD_REMEDIATION_NOTE', 'CLOSE_SESSION'],
   CLOSED: [],
 };
-
 
 function assertRoundComplete(session: Session, measurerId: string, round: 1 | 2): void {
   const activeIds = new Set(session.subjects.filter(subject => subject.status === 'ACTIVE').map(subject => subject.id));
   const rows = session.measurements.filter(m => m.measurerId === measurerId && m.round === round && activeIds.has(m.subjectId));
-  if (rows.length !== activeIds.size) throw new DomainInvariantError('ROUND_INCOMPLETE');
+  if (rows.length !== activeIds.size) throw new DomainError('INCOMPLETE_ROUND');
 }
 
 function nextRevision(session: Session): Pick<Session, 'revision' | 'updatedAt'> {
   return { revision: session.revision + 1, updatedAt: new Date().toISOString() };
 }
 
+function advanceKeepingResultCurrent(session: Session): Pick<Session, 'revision' | 'updatedAt' | 'result'> {
+  const next = nextRevision(session);
+  return { ...next, result: session.result ? { ...session.result, inputRevision: next.revision } : null };
+}
+
 export function transition(session: Session, event: SessionEvent): Session {
-  if (!allowed[session.state].includes(event.type)) throw new DomainInvariantError('INVALID_STATE_TRANSITION');
+  if (!allowed[session.state].includes(event.type)) throw new DomainError('INVALID_TRANSITION');
   switch (event.type) {
     case 'VALIDATE_SETUP':
       assertSetupIntegrity(session);
@@ -50,25 +55,29 @@ export function transition(session: Session, event: SessionEvent): Session {
     case 'MARK_READY': return { ...session, state: 'READY_TO_CALCULATE', ...nextRevision(session) };
     case 'RECORD_MEASUREMENT': {
       assertMeasurementValue(event.measurement.valueCm);
+      assertMeasurementProvenance(session, event.measurement);
       assertMeasurementUnique(session.measurements, event.measurement);
       const isTrainee = event.measurement.measurerId === session.trainee.id;
       const isReference = event.measurement.measurerId === session.reference.id;
-      if (!isTrainee && !isReference) throw new DomainInvariantError('UNKNOWN_MEASURER');
-      if (session.state === 'ROUND1_OPEN' && (!isTrainee || event.measurement.round !== 1)) throw new DomainInvariantError('ROUND_MEASURER_MISMATCH');
-      if (session.state === 'ROUND2_OPEN' && (!isTrainee || event.measurement.round !== 2)) throw new DomainInvariantError('ROUND_MEASURER_MISMATCH');
-      if (session.state === 'REFERENCE_OPEN' && !isReference) throw new DomainInvariantError('ROUND_MEASURER_MISMATCH');
+      if (!isTrainee && !isReference) throw new DomainError('UNKNOWN_MEASURER');
+      if (session.state === 'ROUND1_OPEN' && (!isTrainee || event.measurement.round !== 1)) throw new DomainError('ROUND_MEASURER_MISMATCH');
+      if (session.state === 'ROUND2_OPEN' && (!isTrainee || event.measurement.round !== 2)) throw new DomainError('ROUND_MEASURER_MISMATCH');
+      if (session.state === 'REFERENCE_OPEN' && !isReference) throw new DomainError('ROUND_MEASURER_MISMATCH');
       const rev = session.revision + 1;
       return { ...session, measurements: [...session.measurements, { ...event.measurement, revision: rev }], result: null, revision: rev, updatedAt: new Date().toISOString() };
     }
     case 'SET_RESULT': {
       const next = nextRevision(session);
-      if (event.result.inputRevision !== next.revision) throw new DomainInvariantError('RESULT_STALE');
+      if (event.result.inputRevision !== next.revision) throw new DomainError('RESULT_STALE');
       return { ...session, result: event.result, state: 'RESULT_VALID', ...next };
     }
     case 'ADD_OBSERVATION':
-      return { ...session, observations: [...session.observations, event.observation], ...nextRevision(session) };
-    case 'START_REMEDIATION': return { ...session, state: 'REMEDIATION', ...nextRevision(session) };
-    case 'CLOSE_SESSION': return { ...session, state: 'CLOSED', ...nextRevision(session) };
+      return { ...session, observations: [...session.observations, event.observation], ...advanceKeepingResultCurrent(session) };
+    case 'START_REMEDIATION': return { ...session, state: 'REMEDIATION', ...advanceKeepingResultCurrent(session) };
+    case 'ADD_REMEDIATION_NOTE':
+      if (!event.note.text.trim()) throw new DomainError('PROTOCOL_INVALID', 'Remediation note cannot be empty');
+      return { ...session, remediationNotes: [...session.remediationNotes, event.note], ...advanceKeepingResultCurrent(session) };
+    case 'CLOSE_SESSION': return { ...session, state: 'CLOSED', ...advanceKeepingResultCurrent(session) };
     case 'INVALIDATE_RESULT': return { ...session, result: null, state: 'READY_TO_CALCULATE', ...nextRevision(session) };
   }
 }

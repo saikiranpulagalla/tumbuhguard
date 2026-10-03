@@ -19,11 +19,15 @@ export const WORKING_STANDARDIZATION_PROFILE: ProtocolProfile = Object.freeze({
   name: 'TumbuhGuard Working Length/Height Standardization Profile',
   source: 'Project working profile; external authoritative parity pending',
   requiredSubjectCount: 10,
-  ageCompositionRule: 'Synthetic demo cohort avoids ambiguous age/position edge cases; exact 24-month behavior tested separately.',
+  ageCompositionRule: 'Competition synthetic cohort: exactly 5 subjects under 24 months and 5 subjects at/over 24 months. This composition is project-defined, not an official WHO/Kemenkes rule.',
   precisionThreshold: 0.6,
   referenceThreshold: 0.8,
   expertPrecisionThreshold: 0.4,
 });
+
+// SHA-256 of the stable-key JSON form of WORKING_STANDARDIZATION_PROFILE.
+// scripts/release-check.ts independently verifies this value before release.
+export const WORKING_STANDARDIZATION_PROFILE_HASH = 'd84ef983ce4cb82ca5d60e978e7f184addb8516b638bfefbbd81a5f2134f828d';
 
 export function ageBandFor(ageMonths: number): AgeBand {
   if (!Number.isInteger(ageMonths) || ageMonths < 0) throw new Error('INVALID_AGE_MONTHS');

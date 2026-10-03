@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateStandardization } from '../../src/domain/protocol/evaluator';
+import { evaluateStandardization, passesStrictThreshold } from '../../src/domain/protocol/evaluator';
 import { WORKING_STANDARDIZATION_PROFILE, expectedPositionFor } from '../../src/domain/protocol/profile';
 import { parseMeasurementInput } from '../../src/domain/schemas/measurement-input';
 
@@ -7,17 +7,20 @@ const pairsAtTem = (tem: number) => [{ subjectId: 's', first: 100, second: 100 -
 
 describe('strict threshold semantics', () => {
   it('does not round before comparison', () => {
+    expect(passesStrictThreshold(0.599999,0.6)).toBe(true);
+    expect(passesStrictThreshold(0.6,0.6)).toBe(false);
+    expect(passesStrictThreshold(0.399999,0.4)).toBe(true);
+    expect(passesStrictThreshold(0.4,0.4)).toBe(false);
+    expect(passesStrictThreshold(0.59996,0.6)).toBe(true);
+    expect((0.59996).toFixed(3)).toBe('0.600');
+  });
+
+  it('suppresses agreement when computed reference repeatability is clearly above the boundary', () => {
     const p = WORKING_STANDARDIZATION_PROFILE;
     const subjectMeans = [{ subjectId: 's', traineeMean: 100, referenceMean: 100 }];
-    const pass = evaluateStandardization(p, {
-      traineePairs: pairsAtTem(0.599999), referencePairs: pairsAtTem(0.399999), subjectMeans, inputRevision: 7,
-    });
-    expect(pass.precisionPass).toBe(true);
-    expect(pass.referenceValid).toBe(true);
     const fail = evaluateStandardization(p, {
-      traineePairs: pairsAtTem(0.6), referencePairs: pairsAtTem(0.4), subjectMeans, inputRevision: 7,
+      traineePairs: pairsAtTem(0.1), referencePairs: pairsAtTem(0.4001), subjectMeans, inputRevision: 7,
     });
-    expect(fail.precisionPass).toBe(false);
     expect(fail.referenceValid).toBe(false);
     expect(fail.referencePass).toBeNull();
     expect(fail.referenceTEM).toBeNull();

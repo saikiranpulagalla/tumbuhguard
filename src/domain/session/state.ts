@@ -8,6 +8,7 @@ export type SessionState =
 export type MeasurerRole = 'TRAINEE' | 'REFERENCE';
 export type SubjectStatus = 'ACTIVE' | 'REPLACED';
 export type DataMode = 'SYNTHETIC';
+export type ObservationResult = 'OBSERVED_OK' | 'NEEDS_REVIEW' | 'NOT_OBSERVED';
 
 export interface Measurer { readonly id: string; readonly label: string; readonly role: MeasurerRole; }
 export interface Device { readonly id: string; readonly label: string; readonly type: string; }
@@ -42,8 +43,13 @@ export interface Observation {
   readonly id: string;
   readonly measurerId: string;
   readonly item: string;
-  readonly result: 'PASS' | 'NEEDS_REVIEW' | 'NOT_OBSERVED';
+  readonly result: ObservationResult;
   readonly note?: string;
+}
+export interface RemediationNote {
+  readonly id: string;
+  readonly text: string;
+  readonly createdAt: string;
 }
 export interface SessionResult {
   readonly calculationVersion: string;
@@ -74,6 +80,7 @@ export interface Session {
   readonly stations: readonly Station[];
   readonly measurements: readonly Measurement[];
   readonly observations: readonly Observation[];
+  readonly remediationNotes: readonly RemediationNote[];
   readonly result: SessionResult | null;
 }
 

@@ -13,7 +13,7 @@ it('round-2 DTO contains no prior values or verdicts', () => {
     devices:[{id:'d',label:'Length board',type:'LENGTH_BOARD'}],
     stations:[{id:'st',label:'Station 01',subjectId:'s',deviceId:'d',expectedPosition:'RECUMBENT'}],
     measurements:[{id:'m1',sessionId:'x',measurerId:'t',subjectId:'s',stationId:'st',round:1,valueCm:80,position:'RECUMBENT',revision:1,recordedAt:now}],
-    observations:[], result:null,
+    observations:[], remediationNotes:[], result:null,
   };
   const dto = selectBlindRoundSubjects(session)[0]!;
   expect(dto).toEqual({subjectId:'s',subjectLabel:'Subject 01',stationId:'st',stationLabel:'Station 01',expectedPosition:'RECUMBENT'});

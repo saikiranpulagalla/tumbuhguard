@@ -1,23 +1,33 @@
-import { demoMeasurements, createDemoSession } from '../src/fixtures/demo';
-import { repeatabilityTEM, referenceAgreementTEM, signedMeanDifference } from '../src/domain/calculation';
+import { DEMO_FIXTURES, evaluateDemoFixture } from '../src/fixtures/demo';
 
-const session = createDemoSession();
-const measurements = demoMeasurements(session);
-const active = session.subjects.filter(s => s.status === 'ACTIVE');
-if (active.length !== 10) throw new Error(`Expected 10 active subjects, received ${active.length}`);
-const traineePairs = active.map(subject => {
-  const rows = measurements.filter(m => m.subjectId === subject.id && m.measurerId === session.trainee.id);
-  return { subjectId: subject.id, first: rows.find(m => m.round === 1)!.valueCm, second: rows.find(m => m.round === 2)!.valueCm };
-});
-const referencePairs = active.map(subject => {
-  const rows = measurements.filter(m => m.subjectId === subject.id && m.measurerId === session.reference.id);
-  return { subjectId: subject.id, first: rows.find(m => m.round === 1)!.valueCm, second: rows.find(m => m.round === 2)!.valueCm };
-});
-const means = active.map(subject => {
-  const t = measurements.filter(m => m.subjectId === subject.id && m.measurerId === session.trainee.id);
-  const r = measurements.filter(m => m.subjectId === subject.id && m.measurerId === session.reference.id);
-  return { subjectId: subject.id, traineeMean: (t[0]!.valueCm+t[1]!.valueCm)/2, referenceMean: (r[0]!.valueCm+r[1]!.valueCm)/2 };
-});
-const summary = { traineeTEM: repeatabilityTEM(traineePairs), referenceTEM: repeatabilityTEM(referencePairs), agreementTEM: referenceAgreementTEM(means), signedDifference: signedMeanDifference(means) };
-if (!(summary.traineeTEM < 0.6 && summary.referenceTEM < 0.4 && summary.agreementTEM < 0.8)) throw new Error('Demo fixture no longer represents a passing standardization case');
-console.log(JSON.stringify(summary, null, 2));
+const tolerance = 1e-9;
+const close = (actual: number | null, expected: number) => actual !== null && Math.abs(actual - expected) <= tolerance;
+
+for (const fixture of Object.values(DEMO_FIXTURES)) {
+  if (fixture.synthetic !== true) throw new Error(`${fixture.fixtureId}: synthetic metadata missing`);
+  if (fixture.rows.length !== 10) throw new Error(`${fixture.fixtureId}: expected 10 rows`);
+}
+
+const a = evaluateDemoFixture('cadre-a-good');
+if (!a.precisionPass || !a.referenceValid || a.referencePass !== true) throw new Error('Cadre A expected pass/pass/valid');
+
+const b = evaluateDemoFixture('cadre-b-cancellation');
+if (b.precisionPass || !b.referenceValid || Math.abs(b.signedDifference ?? Number.NaN) > tolerance) throw new Error('Cadre B cancellation fixture drifted');
+
+const c = evaluateDemoFixture('cadre-c-systematic-low');
+if (!close(c.precisionTEM, 0.07071067811865475)) throw new Error(`Cadre C repeatability drifted: ${c.precisionTEM}`);
+if (!close(c.referenceTEM, 0.848528137423857)) throw new Error(`Cadre C agreement drifted: ${c.referenceTEM}`);
+if (!close(c.signedDifference, -1.2)) throw new Error(`Cadre C signed difference drifted: ${c.signedDifference}`);
+if (!c.precisionPass || c.referencePass !== false || !c.referenceValid) throw new Error('Cadre C expected precision pass + reference disagreement');
+
+const invalid = evaluateDemoFixture('invalid-reference');
+if (invalid.referenceValid || invalid.referenceTEM !== null || invalid.referencePass !== null || invalid.signedDifference !== null) {
+  throw new Error('Invalid-reference fixture must suppress agreement and signed difference');
+}
+
+console.log(JSON.stringify({
+  cadreA: a,
+  cadreB: b,
+  cadreC: c,
+  invalidReference: invalid,
+}, null, 2));
