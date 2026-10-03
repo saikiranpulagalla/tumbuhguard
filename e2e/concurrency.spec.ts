@@ -1,4 +1,41 @@
 import { test, expect } from '@playwright/test';
+import { finishCadreCToResult } from './helpers';
+
+async function activeSessionId(page: import('@playwright/test').Page): Promise<string> {
+  return page.evaluate(async () => new Promise<string>((resolve, reject) => {
+    const request = indexedDB.open('tumbuhguard-standardize');
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const database = request.result;
+      const transaction = database.transaction('sessions', 'readonly');
+      const records = transaction.objectStore('sessions').getAll();
+      records.onerror = () => reject(records.error);
+      records.onsuccess = () => {
+        database.close();
+        const active = records.result.find(record => record.state === 'REMEDIATION');
+        if (!active) reject(new Error('Expected a remediation parent session'));
+        else resolve(active.id);
+      };
+    };
+  }));
+}
+
+async function linkedChildren(page: import('@playwright/test').Page, parentId: string): Promise<unknown[]> {
+  return page.evaluate(async (id) => new Promise<unknown[]>((resolve, reject) => {
+    const request = indexedDB.open('tumbuhguard-standardize');
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const database = request.result;
+      const transaction = database.transaction('sessions', 'readonly');
+      const records = transaction.objectStore('sessions').getAll();
+      records.onerror = () => reject(records.error);
+      records.onsuccess = () => {
+        database.close();
+        resolve(records.result.filter(record => record.parentSessionId === id));
+      };
+    };
+  }), parentId);
+}
 
 test('CAS rejects stale second-tab save and BroadcastChannel provides UX warning', async ({ context }) => {
   const a=await context.newPage();
@@ -36,4 +73,39 @@ test('B08 reset rejects a stale-tab write without resurrecting the deleted sessi
   await expect(b.getByText(/local session no longer exists/i)).toBeVisible();
   await b.reload();
   await expect(b.getByRole('button', { name: 'Run 90-sec Demo' })).toBeVisible();
+});
+
+test('B11 rapid re-standardization creation makes exactly one clean child session', async ({ page }) => {
+  await finishCadreCToResult(page);
+  await page.getByRole('button', { name: 'Review & create re-standardization' }).click();
+  await expect(page.getByRole('heading', { name: 'Review evidence before re-standardization' })).toBeVisible();
+  const parentId = await activeSessionId(page);
+
+  await page.getByRole('button', { name: 'Create Re-standardization' }).dblclick();
+  await expect(page.getByRole('heading', { name: 'Standardization setup' })).toBeVisible();
+
+  const children = await linkedChildren(page, parentId) as Array<{ parentSessionId: string; state: string; measurements: unknown[]; result: unknown }>;
+  expect(children).toHaveLength(1);
+  expect(children[0]).toMatchObject({ parentSessionId: parentId, state: 'DRAFT', result: null });
+  expect(children[0]?.measurements).toEqual([]);
+});
+
+test('B12 stale tab cannot create a second re-standardization child', async ({ context }) => {
+  const a = await context.newPage();
+  await finishCadreCToResult(a);
+  await a.getByRole('button', { name: 'Review & create re-standardization' }).click();
+  await expect(a.getByRole('heading', { name: 'Review evidence before re-standardization' })).toBeVisible();
+  const parentId = await activeSessionId(a);
+
+  const b = await context.newPage();
+  await b.goto('/');
+  await expect(b.getByRole('heading', { name: 'Review evidence before re-standardization' })).toBeVisible();
+
+  await a.getByRole('button', { name: 'Create Re-standardization' }).click();
+  await expect(a.getByRole('heading', { name: 'Standardization setup' })).toBeVisible();
+
+  await b.getByRole('button', { name: 'Create Re-standardization' }).click();
+  await expect(b.getByText(/STALE_REVISION/i)).toBeVisible();
+  const children = await linkedChildren(b, parentId);
+  expect(children).toHaveLength(1);
 });

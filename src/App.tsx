@@ -46,6 +46,7 @@ export default function App() {
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
   const channelRef = useRef<BroadcastChannel | null>(null);
   const updateControllerRef = useRef<UpdateController | null>(null);
+  const creatingRestandardizationRef = useRef(false);
 
   useEffect(() => {
     void (async () => {
@@ -200,7 +201,8 @@ export default function App() {
   };
 
   const createRestandardization = async () => {
-    if (!session) return;
+    if (!session || creatingRestandardizationRef.current) return;
+    creatingRestandardizationRef.current = true;
     try {
       const now=new Date().toISOString();
       const next=createRestandardizationSession(session,crypto.randomUUID(),now);
@@ -209,6 +211,7 @@ export default function App() {
       setMessage(`New re-standardization session linked to ${session.id}. Parent session was not overwritten.`);
       channelRef.current?.postMessage({ sessionId: session.id, revision: session.revision });
     } catch(error) { await handleSaveError(error,session.id); }
+    finally { creatingRestandardizationRef.current = false; }
   };
 
   const applyUpdate=async()=>{
