@@ -1,0 +1,636 @@
+{
+  "id": "demo-standardization-001",
+  "dataMode": "SYNTHETIC",
+  "subjects": [
+    {
+      "id": "subject-01",
+      "syntheticLabel": "Synthetic Subject 01",
+      "ageMonths": 12,
+      "ageBand": "UNDER_24_MONTHS",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "subject-02",
+      "syntheticLabel": "Synthetic Subject 02",
+      "ageMonths": 15,
+      "ageBand": "UNDER_24_MONTHS",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "subject-03",
+      "syntheticLabel": "Synthetic Subject 03",
+      "ageMonths": 18,
+      "ageBand": "UNDER_24_MONTHS",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "subject-04",
+      "syntheticLabel": "Synthetic Subject 04",
+      "ageMonths": 21,
+      "ageBand": "UNDER_24_MONTHS",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "subject-05",
+      "syntheticLabel": "Synthetic Subject 05",
+      "ageMonths": 23,
+      "ageBand": "UNDER_24_MONTHS",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "subject-06",
+      "syntheticLabel": "Synthetic Subject 06",
+      "ageMonths": 25,
+      "ageBand": "AT_OR_OVER_24_MONTHS",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "subject-07",
+      "syntheticLabel": "Synthetic Subject 07",
+      "ageMonths": 30,
+      "ageBand": "AT_OR_OVER_24_MONTHS",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "subject-08",
+      "syntheticLabel": "Synthetic Subject 08",
+      "ageMonths": 36,
+      "ageBand": "AT_OR_OVER_24_MONTHS",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "subject-09",
+      "syntheticLabel": "Synthetic Subject 09",
+      "ageMonths": 42,
+      "ageBand": "AT_OR_OVER_24_MONTHS",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "subject-10",
+      "syntheticLabel": "Synthetic Subject 10",
+      "ageMonths": 48,
+      "ageBand": "AT_OR_OVER_24_MONTHS",
+      "status": "ACTIVE"
+    }
+  ],
+  "stations": [
+    {
+      "id": "station-1",
+      "label": "Station 1",
+      "subjectId": "subject-01",
+      "deviceId": "device-01",
+      "expectedPosition": "RECUMBENT"
+    },
+    {
+      "id": "station-2",
+      "label": "Station 2",
+      "subjectId": "subject-02",
+      "deviceId": "device-01",
+      "expectedPosition": "RECUMBENT"
+    },
+    {
+      "id": "station-3",
+      "label": "Station 3",
+      "subjectId": "subject-03",
+      "deviceId": "device-01",
+      "expectedPosition": "RECUMBENT"
+    },
+    {
+      "id": "station-4",
+      "label": "Station 4",
+      "subjectId": "subject-04",
+      "deviceId": "device-01",
+      "expectedPosition": "RECUMBENT"
+    },
+    {
+      "id": "station-5",
+      "label": "Station 5",
+      "subjectId": "subject-05",
+      "deviceId": "device-01",
+      "expectedPosition": "RECUMBENT"
+    },
+    {
+      "id": "station-6",
+      "label": "Station 6",
+      "subjectId": "subject-06",
+      "deviceId": "device-01",
+      "expectedPosition": "STANDING"
+    },
+    {
+      "id": "station-7",
+      "label": "Station 7",
+      "subjectId": "subject-07",
+      "deviceId": "device-01",
+      "expectedPosition": "STANDING"
+    },
+    {
+      "id": "station-8",
+      "label": "Station 8",
+      "subjectId": "subject-08",
+      "deviceId": "device-01",
+      "expectedPosition": "STANDING"
+    },
+    {
+      "id": "station-9",
+      "label": "Station 9",
+      "subjectId": "subject-09",
+      "deviceId": "device-01",
+      "expectedPosition": "STANDING"
+    },
+    {
+      "id": "station-10",
+      "label": "Station 10",
+      "subjectId": "subject-10",
+      "deviceId": "device-01",
+      "expectedPosition": "STANDING"
+    }
+  ],
+  "device": {
+    "id": "device-01",
+    "label": "Demo length/height board",
+    "type": "LENGTH_HEIGHT_BOARD"
+  },
+  "measurements": [
+    {
+      "id": "trainee-01-1-1",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-01",
+      "stationId": "station-1",
+      "round": 1,
+      "valueCm": 74.3,
+      "position": "RECUMBENT",
+      "revision": 1,
+      "recordedAt": "2026-10-03T00:01:00Z"
+    },
+    {
+      "id": "trainee-01-2-1",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-01",
+      "stationId": "station-1",
+      "round": 2,
+      "valueCm": 74.1,
+      "position": "RECUMBENT",
+      "revision": 2,
+      "recordedAt": "2026-10-03T00:02:00Z"
+    },
+    {
+      "id": "reference-01-1-1",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-01",
+      "stationId": "station-1",
+      "round": 1,
+      "valueCm": 74.25,
+      "position": "RECUMBENT",
+      "revision": 3,
+      "recordedAt": "2026-10-03T00:03:00Z"
+    },
+    {
+      "id": "reference-01-2-1",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-01",
+      "stationId": "station-1",
+      "round": 2,
+      "valueCm": 74.15,
+      "position": "RECUMBENT",
+      "revision": 4,
+      "recordedAt": "2026-10-03T00:04:00Z"
+    },
+    {
+      "id": "trainee-01-1-2",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-02",
+      "stationId": "station-2",
+      "round": 1,
+      "valueCm": 77.5,
+      "position": "RECUMBENT",
+      "revision": 1,
+      "recordedAt": "2026-10-03T00:01:00Z"
+    },
+    {
+      "id": "trainee-01-2-2",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-02",
+      "stationId": "station-2",
+      "round": 2,
+      "valueCm": 77.3,
+      "position": "RECUMBENT",
+      "revision": 2,
+      "recordedAt": "2026-10-03T00:02:00Z"
+    },
+    {
+      "id": "reference-01-1-2",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-02",
+      "stationId": "station-2",
+      "round": 1,
+      "valueCm": 77.45,
+      "position": "RECUMBENT",
+      "revision": 3,
+      "recordedAt": "2026-10-03T00:03:00Z"
+    },
+    {
+      "id": "reference-01-2-2",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-02",
+      "stationId": "station-2",
+      "round": 2,
+      "valueCm": 77.35,
+      "position": "RECUMBENT",
+      "revision": 4,
+      "recordedAt": "2026-10-03T00:04:00Z"
+    },
+    {
+      "id": "trainee-01-1-3",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-03",
+      "stationId": "station-3",
+      "round": 1,
+      "valueCm": 80.2,
+      "position": "RECUMBENT",
+      "revision": 1,
+      "recordedAt": "2026-10-03T00:01:00Z"
+    },
+    {
+      "id": "trainee-01-2-3",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-03",
+      "stationId": "station-3",
+      "round": 2,
+      "valueCm": 80.0,
+      "position": "RECUMBENT",
+      "revision": 2,
+      "recordedAt": "2026-10-03T00:02:00Z"
+    },
+    {
+      "id": "reference-01-1-3",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-03",
+      "stationId": "station-3",
+      "round": 1,
+      "valueCm": 80.15,
+      "position": "RECUMBENT",
+      "revision": 3,
+      "recordedAt": "2026-10-03T00:03:00Z"
+    },
+    {
+      "id": "reference-01-2-3",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-03",
+      "stationId": "station-3",
+      "round": 2,
+      "valueCm": 80.05,
+      "position": "RECUMBENT",
+      "revision": 4,
+      "recordedAt": "2026-10-03T00:04:00Z"
+    },
+    {
+      "id": "trainee-01-1-4",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-04",
+      "stationId": "station-4",
+      "round": 1,
+      "valueCm": 82.6,
+      "position": "RECUMBENT",
+      "revision": 1,
+      "recordedAt": "2026-10-03T00:01:00Z"
+    },
+    {
+      "id": "trainee-01-2-4",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-04",
+      "stationId": "station-4",
+      "round": 2,
+      "valueCm": 82.4,
+      "position": "RECUMBENT",
+      "revision": 2,
+      "recordedAt": "2026-10-03T00:02:00Z"
+    },
+    {
+      "id": "reference-01-1-4",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-04",
+      "stationId": "station-4",
+      "round": 1,
+      "valueCm": 82.55,
+      "position": "RECUMBENT",
+      "revision": 3,
+      "recordedAt": "2026-10-03T00:03:00Z"
+    },
+    {
+      "id": "reference-01-2-4",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-04",
+      "stationId": "station-4",
+      "round": 2,
+      "valueCm": 82.45,
+      "position": "RECUMBENT",
+      "revision": 4,
+      "recordedAt": "2026-10-03T00:04:00Z"
+    },
+    {
+      "id": "trainee-01-1-5",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-05",
+      "stationId": "station-5",
+      "round": 1,
+      "valueCm": 84.1,
+      "position": "RECUMBENT",
+      "revision": 1,
+      "recordedAt": "2026-10-03T00:01:00Z"
+    },
+    {
+      "id": "trainee-01-2-5",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-05",
+      "stationId": "station-5",
+      "round": 2,
+      "valueCm": 83.9,
+      "position": "RECUMBENT",
+      "revision": 2,
+      "recordedAt": "2026-10-03T00:02:00Z"
+    },
+    {
+      "id": "reference-01-1-5",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-05",
+      "stationId": "station-5",
+      "round": 1,
+      "valueCm": 84.05,
+      "position": "RECUMBENT",
+      "revision": 3,
+      "recordedAt": "2026-10-03T00:03:00Z"
+    },
+    {
+      "id": "reference-01-2-5",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-05",
+      "stationId": "station-5",
+      "round": 2,
+      "valueCm": 83.95,
+      "position": "RECUMBENT",
+      "revision": 4,
+      "recordedAt": "2026-10-03T00:04:00Z"
+    },
+    {
+      "id": "trainee-01-1-6",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-06",
+      "stationId": "station-6",
+      "round": 1,
+      "valueCm": 86.4,
+      "position": "STANDING",
+      "revision": 1,
+      "recordedAt": "2026-10-03T00:01:00Z"
+    },
+    {
+      "id": "trainee-01-2-6",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-06",
+      "stationId": "station-6",
+      "round": 2,
+      "valueCm": 86.2,
+      "position": "STANDING",
+      "revision": 2,
+      "recordedAt": "2026-10-03T00:02:00Z"
+    },
+    {
+      "id": "reference-01-1-6",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-06",
+      "stationId": "station-6",
+      "round": 1,
+      "valueCm": 86.35,
+      "position": "STANDING",
+      "revision": 3,
+      "recordedAt": "2026-10-03T00:03:00Z"
+    },
+    {
+      "id": "reference-01-2-6",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-06",
+      "stationId": "station-6",
+      "round": 2,
+      "valueCm": 86.25,
+      "position": "STANDING",
+      "revision": 4,
+      "recordedAt": "2026-10-03T00:04:00Z"
+    },
+    {
+      "id": "trainee-01-1-7",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-07",
+      "stationId": "station-7",
+      "round": 1,
+      "valueCm": 91.3,
+      "position": "STANDING",
+      "revision": 1,
+      "recordedAt": "2026-10-03T00:01:00Z"
+    },
+    {
+      "id": "trainee-01-2-7",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-07",
+      "stationId": "station-7",
+      "round": 2,
+      "valueCm": 91.1,
+      "position": "STANDING",
+      "revision": 2,
+      "recordedAt": "2026-10-03T00:02:00Z"
+    },
+    {
+      "id": "reference-01-1-7",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-07",
+      "stationId": "station-7",
+      "round": 1,
+      "valueCm": 91.25,
+      "position": "STANDING",
+      "revision": 3,
+      "recordedAt": "2026-10-03T00:03:00Z"
+    },
+    {
+      "id": "reference-01-2-7",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-07",
+      "stationId": "station-7",
+      "round": 2,
+      "valueCm": 91.15,
+      "position": "STANDING",
+      "revision": 4,
+      "recordedAt": "2026-10-03T00:04:00Z"
+    },
+    {
+      "id": "trainee-01-1-8",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-08",
+      "stationId": "station-8",
+      "round": 1,
+      "valueCm": 96.9,
+      "position": "STANDING",
+      "revision": 1,
+      "recordedAt": "2026-10-03T00:01:00Z"
+    },
+    {
+      "id": "trainee-01-2-8",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-08",
+      "stationId": "station-8",
+      "round": 2,
+      "valueCm": 96.7,
+      "position": "STANDING",
+      "revision": 2,
+      "recordedAt": "2026-10-03T00:02:00Z"
+    },
+    {
+      "id": "reference-01-1-8",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-08",
+      "stationId": "station-8",
+      "round": 1,
+      "valueCm": 96.85,
+      "position": "STANDING",
+      "revision": 3,
+      "recordedAt": "2026-10-03T00:03:00Z"
+    },
+    {
+      "id": "reference-01-2-8",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-08",
+      "stationId": "station-8",
+      "round": 2,
+      "valueCm": 96.75,
+      "position": "STANDING",
+      "revision": 4,
+      "recordedAt": "2026-10-03T00:04:00Z"
+    },
+    {
+      "id": "trainee-01-1-9",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-09",
+      "stationId": "station-9",
+      "round": 1,
+      "valueCm": 101.5,
+      "position": "STANDING",
+      "revision": 1,
+      "recordedAt": "2026-10-03T00:01:00Z"
+    },
+    {
+      "id": "trainee-01-2-9",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-09",
+      "stationId": "station-9",
+      "round": 2,
+      "valueCm": 101.3,
+      "position": "STANDING",
+      "revision": 2,
+      "recordedAt": "2026-10-03T00:02:00Z"
+    },
+    {
+      "id": "reference-01-1-9",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-09",
+      "stationId": "station-9",
+      "round": 1,
+      "valueCm": 101.45,
+      "position": "STANDING",
+      "revision": 3,
+      "recordedAt": "2026-10-03T00:03:00Z"
+    },
+    {
+      "id": "reference-01-2-9",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-09",
+      "stationId": "station-9",
+      "round": 2,
+      "valueCm": 101.35,
+      "position": "STANDING",
+      "revision": 4,
+      "recordedAt": "2026-10-03T00:04:00Z"
+    },
+    {
+      "id": "trainee-01-1-10",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-10",
+      "stationId": "station-10",
+      "round": 1,
+      "valueCm": 106.1,
+      "position": "STANDING",
+      "revision": 1,
+      "recordedAt": "2026-10-03T00:01:00Z"
+    },
+    {
+      "id": "trainee-01-2-10",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "trainee-01",
+      "subjectId": "subject-10",
+      "stationId": "station-10",
+      "round": 2,
+      "valueCm": 105.9,
+      "position": "STANDING",
+      "revision": 2,
+      "recordedAt": "2026-10-03T00:02:00Z"
+    },
+    {
+      "id": "reference-01-1-10",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-10",
+      "stationId": "station-10",
+      "round": 1,
+      "valueCm": 106.05,
+      "position": "STANDING",
+      "revision": 3,
+      "recordedAt": "2026-10-03T00:03:00Z"
+    },
+    {
+      "id": "reference-01-2-10",
+      "sessionId": "demo-standardization-001",
+      "measurerId": "reference-01",
+      "subjectId": "subject-10",
+      "stationId": "station-10",
+      "round": 2,
+      "valueCm": 105.95,
+      "position": "STANDING",
+      "revision": 4,
+      "recordedAt": "2026-10-03T00:04:00Z"
+    }
+  ],
+  "note": "Deterministic synthetic fixture; no real child data."
+}
