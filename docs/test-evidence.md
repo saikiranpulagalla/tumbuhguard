@@ -200,3 +200,32 @@ npm run build           -> FAIL because project dependencies are not installed
 ```
 
 Those failures are environmental/dependency-restoration blockers and are **not** reported as application release passes. They must be rerun under Node 24 LTS with registry access and a regenerated complete lockfile before any V0.2+ or competition-release tag is created.
+
+## RC.2 fresh-extraction audit — source commit `961caae`
+
+A handoff ZIP built from the actual repository (including `.git/` and `tumbuhguard.bundle`) was extracted to a fresh directory and inspected on 2026-10-03.
+
+Passed from that extracted copy:
+
+```text
+git rev-parse --is-inside-work-tree  -> true
+git rev-parse HEAD                   -> 961caae07b2b7f8eb6b9d2ddb8544c865dddafcd
+git tag --list                       -> gate-v0.0-calculation, gate-v0.1-domain
+git fsck --full                      -> PASS
+git bundle verify tumbuhguard.bundle -> PASS, complete history
+node scripts/domain-smoke.mjs        -> PASS (23 compiled dependency-free source files)
+```
+
+The dependency-backed release path remained blocked, not green:
+
+```text
+npm ci (registry-backed)       -> timed out while registry remained unreachable
+npm ci --offline              -> ENOTCACHED (@playwright/test not present in cache)
+npm run typecheck             -> FAIL: project React/Dexie/Node packages/types not installed
+npm run lint                  -> FAIL: local `tsx` not installed
+npm test                      -> FAIL: local `vitest` not installed
+npm run build                 -> FAIL during TypeScript resolution because dependencies are not installed
+npm run e2e                   -> FAIL: declared local Playwright package not installed
+```
+
+These are dependency-restoration/runtime blockers. They are not converted into application PASS claims and no V0.2+ tag is created from this audit.
