@@ -165,3 +165,31 @@ Observed at handoff-audit commit `161f177`:
 - no V0.2+ tag was created without its required browser/npm evidence
 
 The final bundle is regenerated after the evidence commit so the delivered bundle contains the latest repository history.
+
+## Fresh ZIP extraction test
+
+The generated handoff ZIP was extracted into a new directory and tested at source commit `e291581`.
+
+Passed from the extracted copy:
+
+```text
+git rev-parse --is-inside-work-tree  -> true
+git log --all                       -> full additive history present
+git tag                             -> gate-v0.0-calculation, gate-v0.1-domain
+git fsck --full                     -> PASS
+git bundle verify tumbuhguard.bundle -> PASS, complete history
+node scripts/domain-smoke.mjs       -> PASS
+```
+
+The required npm release path remains blocked rather than green:
+
+```text
+npm ci --ignore-scripts -> timed out waiting for unavailable package registry
+npm run typecheck       -> FAIL because React/Dexie/etc. packages/types are not installed
+npm run lint            -> FAIL because local tsx is not installed
+npm test                -> FAIL because local Vitest is not installed
+npm run e2e             -> FAIL because the declared local Playwright package is not installed
+npm run build           -> FAIL because project dependencies are not installed
+```
+
+Those failures are environmental/dependency-restoration blockers and are **not** reported as application release passes. They must be rerun under Node 24 LTS with registry access and a regenerated complete lockfile before any V0.2+ or competition-release tag is created.
