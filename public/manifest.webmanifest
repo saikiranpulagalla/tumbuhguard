@@ -1,0 +1,9 @@
+{
+  "name": "TumbuhGuard Standardize",
+  "short_name": "TumbuhGuard",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f4ed",
+  "theme_color": "#14372c",
+  "icons": [{"src":"/icons/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}
