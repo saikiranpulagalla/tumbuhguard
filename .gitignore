@@ -5,6 +5,7 @@ playwright-report/
 test-results/
 .vite/
 .tsbuild/
+*.tsbuildinfo
 .DS_Store
 
 tumbuhguard.bundle
