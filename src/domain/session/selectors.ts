@@ -1,3 +1,4 @@
+import { DomainError } from '../errors';
 import type { BlindRoundSubjectDTO, Session } from './state';
 
 export function activeSubjects(session: Session) {
@@ -10,7 +11,7 @@ export function selectBlindRoundSubjects(session: Session): readonly BlindRoundS
     .filter(station => active.has(station.subjectId))
     .map(station => {
       const subject = session.subjects.find(s => s.id === station.subjectId);
-      if (!subject) throw new Error('SUBJECT_NOT_FOUND');
+      if (!subject) throw new DomainError('PROTOCOL_INVALID', 'Station references a missing subject');
       return {
         subjectId: subject.id,
         subjectLabel: subject.syntheticLabel,

@@ -1,3 +1,4 @@
+import { DomainError } from '../domain/errors';
 import { evaluateStandardization } from '../domain/protocol/evaluator';
 import { transition } from '../domain/session/transition';
 import type { Measurement, Session } from '../domain/session/state';
@@ -9,20 +10,20 @@ export function buildEvaluation(session: Session) {
     const rows = session.measurements.filter(m => m.subjectId === subject.id && m.measurerId === session.trainee.id);
     const first = rows.find(m => m.round === 1);
     const second = rows.find(m => m.round === 2);
-    if (!first || !second) throw new Error(`MISSING_TRAINEE_PAIR:${subject.id}`);
+    if (!first || !second) throw new DomainError('INCOMPLETE_ROUND', `Missing trainee measurement pair for ${subject.id}`);
     return { subjectId: subject.id, first: first.valueCm, second: second.valueCm };
   });
   const referencePairs = subjects.map(subject => {
     const rows = session.measurements.filter(m => m.subjectId === subject.id && m.measurerId === session.reference.id);
     const first = rows.find(m => m.round === 1);
     const second = rows.find(m => m.round === 2);
-    if (!first || !second) throw new Error(`MISSING_REFERENCE_PAIR:${subject.id}`);
+    if (!first || !second) throw new DomainError('INCOMPLETE_ROUND', `Missing reference measurement pair for ${subject.id}`);
     return { subjectId: subject.id, first: first.valueCm, second: second.valueCm };
   });
   const subjectMeans = subjects.map(subject => {
     const t = session.measurements.filter(m => m.subjectId === subject.id && m.measurerId === session.trainee.id);
     const r = session.measurements.filter(m => m.subjectId === subject.id && m.measurerId === session.reference.id);
-    if (t.length !== 2 || r.length !== 2) throw new Error(`MISSING_MEAN_INPUT:${subject.id}`);
+    if (t.length !== 2 || r.length !== 2) throw new DomainError('INCOMPLETE_ROUND', `Missing agreement input for ${subject.id}`);
     return {
       subjectId: subject.id,
       traineeMean: (t[0]!.valueCm + t[1]!.valueCm) / 2,
@@ -38,7 +39,7 @@ export function buildEvaluation(session: Session) {
 }
 
 export function calculateSession(session: Session): Session {
-  if (session.state !== 'READY_TO_CALCULATE') throw new Error('NOT_READY_TO_CALCULATE');
+  if (session.state !== 'READY_TO_CALCULATE') throw new DomainError('INVALID_TRANSITION', 'Calculation is only available after reference evidence is locked');
   return transition(session, { type: 'SET_RESULT', result: buildEvaluation(session) });
 }
 
