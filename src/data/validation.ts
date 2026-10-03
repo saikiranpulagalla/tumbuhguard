@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { DomainError } from '../domain/errors';
 import { expectedPositionFor } from '../domain/protocol/profile';
+import { evaluateSessionResult } from '../domain/protocol/session-evaluation';
 import type { Session } from '../domain/session/state';
 import type { SessionRecord } from './schema';
 
@@ -162,6 +163,10 @@ function assertCrossFieldConsistency(session: Session): void {
     }
     if (session.result.referenceValid && (session.result.referenceTEM === null || session.result.referencePass === null || session.result.signedDifference === null)) {
       throw new DomainError('STORED_RECORD_INVALID', 'Valid reference result is missing agreement evidence');
+    }
+    const recomputed = evaluateSessionResult(session);
+    if (JSON.stringify(recomputed) !== JSON.stringify(session.result)) {
+      throw new DomainError('RESULT_INTEGRITY_MISMATCH', 'Stored result does not derive from the saved source measurements');
     }
   }
 }

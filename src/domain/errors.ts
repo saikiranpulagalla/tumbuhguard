@@ -4,6 +4,7 @@ export type DomainErrorCode =
   | 'DUPLICATE_MEASUREMENT'
   | 'STALE_REVISION'
   | 'RESULT_STALE'
+  | 'RESULT_INTEGRITY_MISMATCH'
   | 'REFERENCE_INVALID'
   | 'PROTOCOL_INVALID'
   | 'MALFORMED_MEASUREMENT'
@@ -42,6 +43,7 @@ const FRIENDLY: Partial<Record<DomainErrorCode, string>> = {
   DUPLICATE_MEASUREMENT: 'This measurement has already been recorded.',
   STALE_REVISION: 'Another tab saved a newer revision. The latest local session has been reloaded.',
   RESULT_STALE: 'The displayed result is based on an older revision and must be recalculated.',
+  RESULT_INTEGRITY_MISMATCH: 'Saved measurements were recovered, but the previous calculated result could not be verified. Recalculate before continuing.',
   REFERENCE_INVALID: 'Reference agreement is unavailable because reference repeatability did not meet the selected profile.',
   PROTOCOL_INVALID: 'The setup does not satisfy the selected protocol profile.',
   MALFORMED_MEASUREMENT: 'Enter a valid length/height value in centimetres.',
