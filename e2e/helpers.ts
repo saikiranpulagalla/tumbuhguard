@@ -1,4 +1,5 @@
 import { expect, type Page } from '@playwright/test';
+import { REQUIRED_OBSERVATION_ITEMS } from '../src/domain/evidence/required-observations';
 
 export async function openHome(page: Page) {
   await page.goto('/');
@@ -24,6 +25,12 @@ export async function finishCadreCToResult(page: Page) {
   await page.getByRole('button',{name:'Load synthetic reference fixture'}).click();
   await expect(page.getByText('20/20 recorded')).toBeVisible();
   await page.getByRole('button',{name:'Lock reference measurements'}).click();
+  const evidenceLock = page.getByRole('button',{name:'Lock evidence & prepare calculation'});
+  await expect(evidenceLock).toBeDisabled();
+  for (const _item of REQUIRED_OBSERVATION_ITEMS) {
+    await page.getByRole('button', { name: 'Observed OK' }).first().click();
+  }
+  await expect(evidenceLock).toBeEnabled();
   await page.getByRole('button',{name:'Lock evidence & prepare calculation'}).click();
   await page.getByRole('button',{name:'Calculate deterministic QA result'}).click();
   await expect(page.getByRole('heading',{name:'Standardization evidence'})).toBeVisible();
