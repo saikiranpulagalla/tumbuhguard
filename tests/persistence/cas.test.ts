@@ -4,6 +4,7 @@ import { SessionRepository, StaleRevisionError } from '../../src/data/repositori
 import { createRestandardizationSession } from '../../src/domain/session/restandardization';
 import { REQUIRED_OBSERVATION_ITEMS } from '../../src/domain/evidence/required-observations';
 import { createDemoSession, evaluateDemoFixture, fixtureMeasurements } from '../../src/fixtures/demo';
+import { sha256Json } from '../../src/data/transactions/hash';
 
 function remediationParent() {
   const base=createDemoSession('cadre-c-systematic-low','parent-session');
@@ -46,6 +47,8 @@ describe('revision CAS', () => {
     const persistedChild = await repo.get(child.id);
     const persistedParent = await repo.get(parent.id);
     expect(persistedParent).toMatchObject({ state: 'CLOSED' });
+    const parentAudit = await db.audit.where('sessionId').equals(parent.id).first();
+    expect(parentAudit?.payloadHash).toBe(await sha256Json(persistedParent));
     expect(persistedChild?.updatedAt > (persistedParent?.updatedAt ?? '')).toBe(true);
     await expect(repo.createLinkedCAS(createRestandardizationSession(parent,'child-race','2026-10-03T01:00:01Z'),parent.id,parent.revision)).rejects.toBeInstanceOf(StaleRevisionError);
     await expect(repo.get('child-race')).resolves.toBeUndefined();

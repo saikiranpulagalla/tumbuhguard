@@ -1,6 +1,6 @@
 import { evaluateStandardization } from '../domain/protocol/evaluator';
 import { expectedPositionFor, WORKING_STANDARDIZATION_PROFILE, WORKING_STANDARDIZATION_PROFILE_HASH } from '../domain/protocol/profile';
-import type { Measurement, Observation, Session, SessionResult, Subject } from '../domain/session/state';
+import type { Measurement, Session, SessionResult, Subject } from '../domain/session/state';
 
 export type DemoFixtureId = 'cadre-a-good' | 'cadre-b-cancellation' | 'cadre-c-systematic-low' | 'invalid-reference';
 
@@ -152,25 +152,20 @@ export function evaluateDemoFixture(fixtureId: DemoFixtureId): SessionResult {
   }), protocolValidity: { valid: true, deviations: [] } };
 }
 
-export function createCadreCFastDemoSession(): Session {
+export function createCadreCFastDemoSession(id = `demo-cadre-c-fast-${crypto.randomUUID()}`): Session {
   const fixtureId: DemoFixtureId = 'cadre-c-systematic-low';
-  const base = createDemoSession(fixtureId, 'demo-cadre-c-fast');
+  const base = createDemoSession(fixtureId, id);
   const all = fixtureMeasurements(base, fixtureId);
   let demoRevision = 1;
   const roundOne = all.filter(m => m.measurerId === base.trainee.id && m.round === 1).map(m => ({ ...m, revision: demoRevision++ }));
   const roundTwoFirstNine = all.filter(m => m.measurerId === base.trainee.id && m.round === 2 && m.subjectId !== 'S10').map(m => ({ ...m, revision: demoRevision++ }));
-  const observations: Observation[] = [
-    { id:'demo-observation-1', measurerId:base.trainee.id, item:'Correct positioning before reading', result:'OBSERVED_OK', note:'Synthetic demo evidence' },
-    { id:'demo-observation-2', measurerId:base.trainee.id, item:'Equipment/station check performed', result:'OBSERVED_OK', note:'Synthetic demo evidence' },
-    { id:'demo-observation-3', measurerId:base.trainee.id, item:'Reading recorded without prompting', result:'OBSERVED_OK', note:'Synthetic demo evidence' },
-  ];
   return {
     ...base,
     state: 'ROUND2_OPEN',
     revision: demoRevision + 6,
     updatedAt: '2026-10-03T00:02:30.000Z',
     measurements: [...roundOne, ...roundTwoFirstNine],
-    observations,
+    observations: [],
   };
 }
 

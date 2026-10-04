@@ -1,7 +1,7 @@
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { createSessionBackup } from '../../src/data/export/session-export';
+import { createSessionBackup, verifySessionBackup } from '../../src/data/export/session-export';
 import { createDemoSession } from '../../src/fixtures/demo';
 
 async function collect(root:string):Promise<string[]> {
@@ -32,6 +32,8 @@ describe('Tier A privacy and claims', () => {
     expect(backup.dataMode).toBe('SYNTHETIC');
     expect(backup.synthetic).toBe(true);
     expect(backup.session.dataMode).toBe('SYNTHETIC');
+    expect(await verifySessionBackup(backup)).toBe(true);
+    expect(await verifySessionBackup({ ...backup, exportedAt: '2026-10-04T00:00:00.000Z' })).toBe(false);
   });
 
   it('S05-S06 runtime contains no positive official-certification claims', async () => {

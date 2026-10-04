@@ -141,7 +141,7 @@ export class SessionRepository {
         revision: nextParent.revision,
         eventType,
         at: auditAt,
-        payloadHash: childIntegrityHash,
+        payloadHash: parentIntegrityHash,
       });
     });
   }
@@ -184,7 +184,7 @@ export class SessionRepository {
 
   async list(): Promise<readonly Session[]> {
     await this.assertSchemaCompatibility();
-    const records = await this.database.sessions.orderBy('updatedAt').reverse().toArray();
+    const records = await this.database.sessions.toArray();
     const sessions: Session[] = [];
     for (const raw of records) {
       const record = parseStoredSessionRecord(raw);
@@ -193,6 +193,6 @@ export class SessionRepository {
       await this.assertProtocolSnapshotHash(session);
       sessions.push(session);
     }
-    return sessions;
+    return sessions.sort((a,b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
   }
 }

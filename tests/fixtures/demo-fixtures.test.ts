@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEMO_FIXTURES, evaluateDemoFixture } from '../../src/fixtures/demo';
+import { createCadreCFastDemoSession, DEMO_FIXTURES, evaluateDemoFixture } from '../../src/fixtures/demo';
 
 describe('deterministic demo fixtures', () => {
   it('marks every fixture synthetic and keeps exactly 10 subjects', () => {
@@ -37,5 +37,14 @@ describe('deterministic demo fixtures', () => {
     expect(result.referenceTEM).toBeNull();
     expect(result.referencePass).toBeNull();
     expect(result.signedDifference).toBeNull();
+  });
+
+  it('creates unique legal Round-2 demo instances without premature observations', () => {
+    const first = createCadreCFastDemoSession();
+    const second = createCadreCFastDemoSession();
+    expect(first.id).not.toBe(second.id);
+    expect(first.id).toMatch(/^demo-cadre-c-fast-/);
+    expect(first.state).toBe('ROUND2_OPEN');
+    expect(first.observations).toEqual([]);
   });
 });

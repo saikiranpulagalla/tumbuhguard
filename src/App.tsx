@@ -6,7 +6,7 @@ import { calculateSession } from './app/workflow';
 import { StateRail } from './components/StateRail';
 import { SessionRepository, StaleRevisionError } from './data/repositories/session-repository';
 import { db } from './data/db';
-import { friendlyDomainError } from './domain/errors';
+import { DomainError, friendlyDomainError } from './domain/errors';
 import { resultIsCurrent } from './domain/protocol/invariants';
 import { transition } from './domain/session/transition';
 import { createRestandardizationSession } from './domain/session/restandardization';
@@ -207,10 +207,6 @@ export default function App() {
     const base=createCadreCFastDemoSession();
     const now=new Date().toISOString();
     const seed={...base,createdAt:now,updatedAt:now};
-    await db.transaction('rw', db.sessions, db.audit, async () => {
-      await db.sessions.delete(seed.id);
-      await db.audit.where('sessionId').equals(seed.id).delete();
-    });
     await repository.create(seed);
     setSession(seed); setShowHome(false); setLoadError(null);
     setMessage('Cadre C 90-sec demo loaded at blinded Round 2: enter the final S10 repeat (95.9 cm).');
@@ -218,10 +214,21 @@ export default function App() {
     finally { loadingDemoRef.current = false; }
   };
 
-  const exportBackup = async () => { if (session) downloadJson(`tumbuhguard-${session.id}.json`, await createSessionBackup(session)); };
+  const exportBackup = async () => {
+    if (!session) return;
+    try {
+      const current = await repository.get(session.id);
+      if (!current) throw new DomainError('SESSION_NOT_FOUND');
+      if (current.revision !== session.revision) {
+        setSession(current);
+        setMessage('The latest persisted revision was exported.');
+      }
+      downloadJson(`tumbuhguard-${current.id}.json`, await createSessionBackup(current));
+    } catch (error) { await handleSaveError(error, session.id); }
+  };
 
   const loadSyntheticReference = async () => {
-    if (!session || session.state!=='REFERENCE_OPEN' || session.id!=='demo-cadre-c-fast') return;
+    if (!session || session.state!=='REFERENCE_OPEN' || !session.id.startsWith('demo-cadre-c-fast-')) return;
     const expected=session.revision;
     try {
       let next=session;
@@ -290,7 +297,7 @@ export default function App() {
     {session.state==='ROUND1_LOCKED' && <section className="panel callout"><h2>Round 1 locked</h2><p>Normal editing is blocked. Round 2 opens without exposing Round-1 values.</p><button className="primary" onClick={()=>void apply({type:'OPEN_ROUND_2'},'OPEN_ROUND_2')}>Open blinded Round 2</button></section>}
     {session.state==='ROUND2_OPEN' && <RoundTwoPanel subjects={blindRows} completedSubjectIds={session.measurements.filter(measurement => measurement.measurerId === session.trainee.id && measurement.round === 2 && activeSubjects.some(subject => subject.id === measurement.subjectId)).map(measurement => measurement.subjectId)} onRecordMeasurement={input => recordTrainee(2)(input.subjectId, input.stationId, input.valueCm, input.position)} onLockRound={()=>void apply({type:'LOCK_ROUND_2'},'LOCK_ROUND_2')}/>}
     {session.state==='ROUND2_LOCKED' && <section className="panel callout"><h2>Trainee rounds locked</h2><p>Proceed to independent qualified-reference repeat measurements.</p><button className="primary" onClick={()=>void apply({type:'OPEN_REFERENCE'},'OPEN_REFERENCE')}>Open reference measurements</button></section>}
-    {session.state==='REFERENCE_OPEN' && <ReferencePanel session={session} onRecord={recordReference} onLock={()=>void apply({type:'LOCK_REFERENCE'},'LOCK_REFERENCE')} {...(session.id==='demo-cadre-c-fast'?{onLoadSyntheticFixture:()=>void loadSyntheticReference()}:{})}/>}
+    {session.state==='REFERENCE_OPEN' && <ReferencePanel session={session} onRecord={recordReference} onLock={()=>void apply({type:'LOCK_REFERENCE'},'LOCK_REFERENCE')} {...(session.id.startsWith('demo-cadre-c-fast-')?{onLoadSyntheticFixture:()=>void loadSyntheticReference()}:{})}/>}
     {session.state==='REFERENCE_LOCKED' && <><EvidencePanel session={session} onAdd={addObservation}/><section className="panel compact"><button className="primary" disabled={!evidenceComplete} onClick={()=>void apply({type:'MARK_READY'},'MARK_READY')}>Lock evidence & prepare calculation</button></section></>}
     {session.state==='READY_TO_CALCULATE' && <section className="panel callout"><h2>Ready to calculate</h2><p>All active paired measurements and evidence are locked for this revision.</p><button className="primary" onClick={()=>void saveCalculated()}>Calculate deterministic QA result</button></section>}
     {session.state==='RESULT_VALID' && (!resultIsCurrent(session)?<section className="panel callout"><h2>Result stale</h2><p>The saved result does not match this session revision and will not be displayed as current.</p></section>:<ResultsPanel session={session} onRemediate={()=>void apply({type:'START_REMEDIATION'},'START_REMEDIATION')} onClose={()=>void apply({type:'CLOSE_SESSION'},'CLOSE_SESSION')}/>)}

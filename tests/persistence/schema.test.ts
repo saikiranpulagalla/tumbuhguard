@@ -103,6 +103,10 @@ it('rejects future-stage measurements and remediation evidence in earlier persis
 it('rejects invalid UTC timestamps and duplicate observation/remediation structure', () => {
   const base = createDemoSession();
   expect(() => assertSessionShape({ ...base, updatedAt: 'zzz' })).toThrow();
+  expect(() => assertSessionShape({ ...base, updatedAt: '2026-02-29T00:00:00Z' })).toThrow();
+  expect(() => assertSessionShape({ ...base, updatedAt: '2026-02-31T00:00:00Z' })).toThrow();
+  expect(() => assertSessionShape({ ...base, updatedAt: '2026-04-31T00:00:00Z' })).toThrow();
+  expect(() => assertSessionShape({ ...base, updatedAt: '2024-02-29T00:00:00Z' })).not.toThrow();
   expect(() => assertSessionShape({ ...base, measurements: [{ ...fixtureMeasurements(base, 'cadre-a-good')[0]!, revision: 1, recordedAt: '2026-99-99T00:00:00Z' }], revision: 1 })).toThrow();
   const duplicateObservation = { id: 'observation', measurerId: base.trainee.id, item: 'Correct positioning before reading', result: 'OBSERVED_OK' as const };
   expect(() => assertSessionShape({ ...base, observations: [duplicateObservation, duplicateObservation] })).toThrow();

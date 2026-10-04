@@ -33,8 +33,10 @@ const stationSchema = z.object({
 });
 const canonicalTimestamp = z.string().refine(value => {
   const parsed = Date.parse(value);
-  return Number.isFinite(parsed)
-    && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(value);
+  const match = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,3}))?Z$/.exec(value);
+  if (!Number.isFinite(parsed) || !match) return false;
+  const milliseconds = (match[2] ?? '').padEnd(3, '0');
+  return new Date(parsed).toISOString() === `${match[1]}.${milliseconds}Z`;
 }, 'Expected canonical ISO-8601 UTC timestamp');
 
 const measurementSchema = z.object({
