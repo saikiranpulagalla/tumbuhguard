@@ -1,5 +1,9 @@
 # 90-second judge demo — Cadre C
 
+## RC.4 rehearsal evidence
+
+The automated production-browser path was executed online, after warm-cache offline transition, and from a fresh browser context on 2026-10-04. Each reached the linked re-standardization setup without developer intervention. This proves the interaction path; the presenter should rehearse the spoken script below three times on the competition laptop and keep the narration within the stated time boxes.
+
 ## 0–10 sec
 
 Say:

@@ -239,9 +239,7 @@ The existing verified tags are V0.0/V0.1-era tags. Later gates must not be tagge
 ## Limitations
 
 - Exact WHO/UNICEF/DHS Annex-13 reference-agreement parity is pending the authoritative external oracle.
-- This environment does not provide the locked Node 24 runtime.
-- Registry connectivity is unavailable here, so dependency installation and browser-backed release verification cannot honestly be reported as passed in this environment.
-- The current `package-lock.json` remains a bootstrap lock until it can be regenerated/validated with registry access.
+- Browser-release verification in this environment uses system Microsoft Edge through Playwright; the Playwright-managed Chromium binary is not installed.
 - Competition data are synthetic only; real programme deployment requires privacy/security/programme validation beyond this prototype.
 
 ## Future work

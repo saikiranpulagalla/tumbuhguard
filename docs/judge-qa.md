@@ -48,7 +48,7 @@ No. The safe claim is **application-level revision history with integrity checks
 
 ## Does it work offline?
 
-After the application has loaded once and its shell is cached, the core standardization workflow is designed to run without network connectivity. A first-ever uncached launch is not claimed to work offline.
+Yes. After the application has loaded once and its shell is cached, we verified the assessment, calculation, evidence, remediation and linked re-standardization workflow offline, including close and reopen. A first-ever uncached launch is not claimed to work offline.
 
 ## Does it use AI?
 

@@ -19,3 +19,7 @@
 # Position-validity release note
 
 A recorded position that differs from the active station's configured position is preserved as evidence and withholds the normal standardization verdict. No length/height conversion is applied.
+
+## RC.4 verification boundary
+
+Production-browser verification on 2026-10-04 exercised the declared competition workflow with system Microsoft Edge through Playwright, including warm-cache offline use, close/reopen, remediation and linked re-standardization. The safe offline claim remains limited to use **after a first successful cached load**. Exact external DHS/Annex-13 reference-agreement parity remains `EXTERNAL_ORACLE_PARITY_PENDING`.
