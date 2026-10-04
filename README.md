@@ -1,5 +1,7 @@
 # TumbuhGuard Standardize
 
+**Offline practical anthropometry standardization that validates the measurer, not just the measurement.**
+
 > **A measurement can be consistent and still be wrong.**  
 > **Validate the measurer, not just the measurement.**
 
@@ -38,6 +40,16 @@ The competition build provides:
 ASIK can digitize the record and Plataran Sehat can digitize learning. TumbuhGuard Standardize is positioned as a **proposed practical measurement-quality assessment workflow between training and downstream record entry**.
 
 It does not claim to replace existing government systems or to have invented TEM/anthropometric standardization.
+
+## Example: consistent but wrong
+
+The deterministic **Cadre C** demo illustrates why consistency alone is not enough:
+
+- repeatability TEM: approximately `0.071 cm`
+- qualified-reference agreement TEM: approximately `0.849 cm`
+- signed difference: `-1.2 cm` (descriptive only)
+
+The measurer is highly repeatable, but the agreement result requires re-standardization. A spreadsheet can calculate a metric; TumbuhGuard manages whether that metric came from a valid assessment workflow.
 
 ## How the standardization workflow works
 
@@ -168,6 +180,16 @@ synthetic: true
 
 No AI is used in the application.
 
+## Technology stack
+
+- React 19 and TypeScript
+- Vite, vite-plugin-pwa and Workbox
+- Dexie / IndexedDB and Zod validation
+- Web Crypto integrity hashing and BroadcastChannel duplicate-tab awareness
+- Vitest and Playwright for deterministic unit, browser and offline verification
+
+The application itself contains no AI/LLM inference: calculations and protocol decisions are deterministic. AI coding assistants were used during development for implementation support, testing, review and adversarial QA.
+
 ## Demo
 
 The Home screen includes **Run 90-sec Demo**. It loads the deterministic Cadre C case at the final blinded Round-2 entry:
@@ -235,7 +257,7 @@ The repository preserves additive Git history. Tags are created only for gates w
 - `git tag --list`
 - `docs/test-evidence.md`
 
-Verified gates currently span `gate-v0.0-calculation` through `gate-v0.8`, followed by `v0.9.0-rc` and `v1.0.0`. The existing V1 tag remains immutable; subsequent repairs are prepared as a future patch release.
+Verified gates span `gate-v0.0-calculation` through `gate-v0.8`, followed by `v0.9.0-rc`, `v1.0.0` and the current verified patch release **`v1.0.1`**.
 
 ## Limitations
 
