@@ -254,11 +254,11 @@ The repository preserves additive Git history. Tags are created only for gates w
 
 - `git log --oneline --decorate --graph --all`
 - `git tag --list`
-- `docs/release-v1.0.1.md`
+- `docs/release-v1.0.2.md`
 - `docs/claims-matrix.md`
 - `docs/protocol-sources.md`
 
-Verified gates span `gate-v0.0-calculation` through `gate-v0.8`, followed by `v0.9.0-rc`, `v1.0.0` and the current verified patch release **`v1.0.1`**.
+Verified gates span `gate-v0.0-calculation` through `gate-v0.8`, followed by `v0.9.0-rc`, `v1.0.0`, `v1.0.1`, and the current verification candidate **`v1.0.2`**.
 
 ## Limitations
 
