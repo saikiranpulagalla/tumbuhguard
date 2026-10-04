@@ -19,8 +19,8 @@ test('Cadre C proves repeatable measurements can still disagree with reference',
   await expect(page.getByText('-1.200 cm')).toBeVisible();
   await expect(page.getByText('Reference disagreement detected.')).toBeVisible();
 
-  await page.getByRole('tab',{name:'Equipment'}).click();
+  await page.getByRole('button',{name:'Equipment'}).click();
   await expect(page.getByText('Demo length/height board')).toBeVisible();
-  await page.getByRole('tab',{name:'Protocol'}).click();
+  await page.getByRole('button',{name:'Protocol'}).click();
   await expect(page.getByText('EXTERNAL_ORACLE_PARITY_PENDING').first()).toBeVisible();
 });
