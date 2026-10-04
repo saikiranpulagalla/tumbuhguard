@@ -28,7 +28,8 @@ export type DomainErrorCode =
   | 'REVISION_MUST_ADVANCE'
   | 'STATION_CHANGE_REQUIRES_REVIEW'
   | 'SUBJECT_REPLACEMENT_INVALID'
-  | 'SESSION_NOT_FOUND';
+  | 'SESSION_NOT_FOUND'
+  | 'ACTIVE_SESSION_EXISTS';
 
 export class DomainError extends Error {
   constructor(public readonly code: DomainErrorCode, message: string = code) {
@@ -53,6 +54,7 @@ const FRIENDLY: Partial<Record<DomainErrorCode, string>> = {
   STATION_DUPLICATE: 'Each active subject must have one unique station assignment.',
   STATION_CHANGE_REQUIRES_REVIEW: 'Station assignments cannot be silently changed after measurements exist.',
   SESSION_NOT_FOUND: 'This local session no longer exists. It may have been reset or removed in another tab.',
+  ACTIVE_SESSION_EXISTS: 'Another active local assessment already exists. The current workflow has been reloaded.',
 };
 
 export function friendlyDomainError(error: unknown): string {

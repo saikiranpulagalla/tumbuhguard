@@ -6,6 +6,7 @@ import { DB_SCHEMA_META_KEY, DB_SCHEMA_VERSION } from '../schema';
 import { classifySchemaCompatibility } from '../schema-policy';
 import { sha256Json } from '../transactions/hash';
 import { assertSessionShape, parseStoredSessionRecord } from '../validation';
+import { DEMO_SESSION_ID } from '../../fixtures/demo';
 
 export class StaleRevisionError extends DomainError {
   constructor(public readonly expected: number, public readonly actual: number) {
@@ -75,9 +76,10 @@ export class SessionRepository {
     await this.assertSchemaCompatibility();
     const raw = await this.database.sessions.get(id);
     if (!raw) return undefined;
+    const { integrityHash, ...rawSession } = raw;
+    if (typeof integrityHash !== 'string' || (await sha256Json(rawSession)) !== integrityHash) throw new DomainError('STORED_RECORD_INVALID', 'Saved local session failed integrity verification');
     const record = parseStoredSessionRecord(raw);
-    const { integrityHash, ...session } = record;
-    if ((await sha256Json(session)) !== integrityHash) throw new DomainError('STORED_RECORD_INVALID', 'Saved local session failed integrity verification');
+    const { integrityHash: _, ...session } = record;
     await this.assertProtocolSnapshotHash(session);
     return record;
   }
@@ -89,16 +91,61 @@ export class SessionRepository {
     return session;
   }
 
-  async create(session: Session): Promise<void> {
+  private assertCleanRoot(session: Session): void {
+    if (session.parentSessionId || session.state !== 'DRAFT' || session.revision !== 0 || session.measurements.length || session.observations.length || session.remediationNotes.length || session.result) {
+      throw new DomainError('INVALID_TRANSITION', 'Normal root creation requires a clean unlinked DRAFT session');
+    }
+  }
+
+  private async addAsOnlyActiveHead(session: Session): Promise<void> {
+    const integrityHash = await sha256Json(session);
+    await this.database.transaction('rw', this.database.sessions, async () => {
+      const existing = await this.database.sessions.toArray();
+      if (existing.some(record => record.id !== DEMO_SESSION_ID && record.state !== 'CLOSED')) {
+        throw new DomainError('ACTIVE_SESSION_EXISTS');
+      }
+      await this.database.sessions.add({ ...session, integrityHash });
+    });
+  }
+
+  async ensureHomeTemplate(session: Session): Promise<void> {
     await this.assertSchemaCompatibility();
+    if (session.id !== DEMO_SESSION_ID) throw new DomainError('PROTOCOL_INVALID', 'Home template ID is invalid');
+    this.assertCleanRoot(session);
     assertSessionShape(session);
     await this.assertProtocolSnapshotHash(session);
     const integrityHash = await sha256Json(session);
-    await this.database.sessions.add({ ...session, integrityHash });
+    try { await this.database.sessions.add({ ...session, integrityHash }); } catch (error) {
+      if (await this.database.sessions.get(session.id)) return;
+      throw error;
+    }
+  }
+
+  async createRoot(session: Session): Promise<void> {
+    await this.assertSchemaCompatibility();
+    if (session.id === DEMO_SESSION_ID) {
+      throw new DomainError('INVALID_TRANSITION', 'The home template must be created through ensureHomeTemplate');
+    }
+    this.assertCleanRoot(session);
+    assertSessionShape(session);
+    await this.assertProtocolSnapshotHash(session);
+    await this.addAsOnlyActiveHead(session);
+  }
+
+  async seedSyntheticDemo(session: Session): Promise<void> {
+    await this.assertSchemaCompatibility();
+    if (!session.id.startsWith('demo-cadre-c-fast-') || session.parentSessionId || session.dataMode !== 'SYNTHETIC' || session.state !== 'ROUND2_OPEN' || session.observations.length) {
+      throw new DomainError('INVALID_TRANSITION', 'Synthetic demo seed does not meet the explicit seed contract');
+    }
+    assertSessionShape(session);
+    await this.assertProtocolSnapshotHash(session);
+    await this.addAsOnlyActiveHead(session);
   }
 
   async createLinkedCAS(child: Session, parentId: string, expectedParentRevision: number, eventType = 'CREATE_RESTANDARDIZATION'): Promise<void> {
     if (child.parentSessionId !== parentId) throw new DomainError('PROTOCOL_INVALID', 'Linked session parent ID mismatch');
+    const { parentSessionId: ignoredParentSessionId, ...unlinkedChild } = child;
+    this.assertCleanRoot(unlinkedChild);
     assertSessionShape(child);
     await this.assertProtocolSnapshotHash(child);
     const verifiedParent = await this.validatedRecord(parentId);
@@ -187,9 +234,10 @@ export class SessionRepository {
     const records = await this.database.sessions.toArray();
     const sessions: Session[] = [];
     for (const raw of records) {
+      const { integrityHash, ...rawSession } = raw;
+      if (typeof integrityHash !== 'string' || (await sha256Json(rawSession)) !== integrityHash) throw new DomainError('STORED_RECORD_INVALID', `Integrity failure for session ${raw.id}`);
       const record = parseStoredSessionRecord(raw);
-      const { integrityHash, ...session } = record;
-      if ((await sha256Json(session)) !== integrityHash) throw new DomainError('STORED_RECORD_INVALID', `Integrity failure for session ${record.id}`);
+      const { integrityHash: _, ...session } = record;
       await this.assertProtocolSnapshotHash(session);
       sessions.push(session);
     }

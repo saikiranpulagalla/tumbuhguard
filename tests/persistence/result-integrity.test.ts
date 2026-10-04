@@ -55,7 +55,8 @@ it('RI10 rejects a hash-recomputed stale result through repository recovery', as
   const database = new TumbuhGuardDB(`test-${crypto.randomUUID()}`);
   const repository = new SessionRepository(database);
   const session = calculated();
-  await repository.create(session);
+  await repository.ensureHomeTemplate(createDemoSession());
+  await database.sessions.put({ ...session, integrityHash: await sha256Json(session) });
 
   const first = session.measurements[0]!;
   const changed = { ...session, measurements: [{ ...first, valueCm: first.valueCm + 1 }, ...session.measurements.slice(1)] };

@@ -14,7 +14,7 @@ import { selectBlindRoundSubjects } from './domain/session/selectors';
 import type { MeasurementPosition } from './domain/protocol/profile';
 import type { SessionEvent } from './domain/session/events';
 import type { Observation, Session as SessionModel } from './domain/session/state';
-import { createCadreCFastDemoSession, createDemoSession, referenceFixtureMeasurements } from './fixtures/demo';
+import { createCadreCFastDemoSession, createDemoSession, DEMO_SESSION_ID, referenceFixtureMeasurements } from './fixtures/demo';
 import { HomePanel } from './features/home/HomePanel';
 import { SetupPanel } from './features/setup/SetupPanel';
 import { RoundPanel } from './features/round-one/RoundPanel';
@@ -59,12 +59,12 @@ export default function App() {
         const existing = local[0];
         if (existing) {
           setSession(existing);
-          setShowHome(existing.state === 'DRAFT' && existing.id === 'demo-standardization-001' && !existing.parentSessionId);
+          setShowHome(existing.state === 'DRAFT' && existing.id === DEMO_SESSION_ID && !existing.parentSessionId);
           setMessage('Recovered latest local session.');
         } else {
           const seed = createDemoSession();
           try {
-            await repository.create(seed);
+            await repository.ensureHomeTemplate(seed);
             setSession(seed);
           } catch (error) {
             // React StrictMode may replay the mount effect in development.
@@ -98,7 +98,7 @@ export default function App() {
       });
     }
 
-    if ('BroadcastChannel' in window) {
+    if (typeof BroadcastChannel !== 'undefined') {
       const channel = new BroadcastChannel('tumbuhguard-session');
       channel.onmessage = event => {
         if (event.data?.reset) {
@@ -140,7 +140,7 @@ export default function App() {
       if (error instanceof StaleRevisionError) {
         setMessage('STALE_REVISION: another tab saved first. Reloading latest local session.');
         const latest = await repository.get(session.id); if (latest) setSession(latest);
-      } else setMessage(friendlyDomainError(error));
+      } else await handleSaveError(error, session.id);
     }
   };
 
@@ -149,6 +149,26 @@ export default function App() {
       setMessage('STALE_REVISION: another tab saved first. Reloading latest local session.');
       const latest = await repository.get(sessionId);
       if (latest) setSession(latest);
+      return;
+    }
+    if (error instanceof DomainError && error.code === 'SESSION_NOT_FOUND') {
+      const active = (await repository.list()).find(item => item.id !== DEMO_SESSION_ID && item.state !== 'CLOSED');
+      if (active) {
+        setSession(active);
+        setShowHome(false);
+        setMessage('The missing local session was replaced with the current active assessment.');
+        return;
+      }
+      const template = await repository.get(DEMO_SESSION_ID).catch(() => undefined);
+      if (template) {
+        setSession(template);
+        setShowHome(true);
+        setMessage('The missing local session was removed. Showing the safe local home screen.');
+        return;
+      }
+      setSession(null);
+      setShowHome(true);
+      setMessage(friendlyDomainError(error));
       return;
     }
     setMessage(friendlyDomainError(error));
@@ -177,7 +197,7 @@ export default function App() {
       await db.delete();
       await db.open();
       const seed=createDemoSession();
-      await repository.create(seed);
+      await repository.ensureHomeTemplate(seed);
       setSession(seed); setShowHome(true); setLoadError(null); setOtherTab(false);
       setMessage('Demo reset to deterministic synthetic setup.');
       channelRef.current?.postMessage({ reset: true });
@@ -195,8 +215,14 @@ export default function App() {
     const now=new Date().toISOString();
     const base=createDemoSession('cadre-a-good',`assessment-${crypto.randomUUID()}`);
     const next={...base,createdAt:now,updatedAt:now};
-    await repository.create(next); setSession(next); setShowHome(false); setMessage('New synthetic assessment created.');
-    } catch (error) { setMessage(friendlyDomainError(error)); }
+    await repository.createRoot(next); setSession(next); setShowHome(false); setMessage('New synthetic assessment created.');
+    } catch (error) {
+      if (error instanceof DomainError && error.code === 'ACTIVE_SESSION_EXISTS') {
+        const active=(await repository.list()).find(item=>item.id !== DEMO_SESSION_ID && item.state !== 'CLOSED');
+        if (active) { setSession(active); setShowHome(false); }
+      }
+      setMessage(friendlyDomainError(error));
+    }
     finally { startingAssessmentRef.current = false; }
   };
 
@@ -207,10 +233,16 @@ export default function App() {
     const base=createCadreCFastDemoSession();
     const now=new Date().toISOString();
     const seed={...base,createdAt:now,updatedAt:now};
-    await repository.create(seed);
+    await repository.seedSyntheticDemo(seed);
     setSession(seed); setShowHome(false); setLoadError(null);
     setMessage('Cadre C 90-sec demo loaded at blinded Round 2: enter the final S10 repeat (95.9 cm).');
-    } catch (error) { setMessage(friendlyDomainError(error)); }
+    } catch (error) {
+      if (error instanceof DomainError && error.code === 'ACTIVE_SESSION_EXISTS') {
+        const active=(await repository.list()).find(item=>item.id !== DEMO_SESSION_ID && item.state !== 'CLOSED');
+        if (active) { setSession(active); setShowHome(false); }
+      }
+      setMessage(friendlyDomainError(error));
+    }
     finally { loadingDemoRef.current = false; }
   };
 

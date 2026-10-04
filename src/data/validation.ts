@@ -16,21 +16,21 @@ const protocolProfileSchema = z.object({
   precisionThreshold: z.number().finite().positive(),
   referenceThreshold: z.number().finite().positive(),
   expertPrecisionThreshold: z.number().finite().positive(),
-});
+}).strict();
 
 const measurerSchema = z.object({
   id: z.string().min(1), label: z.string().min(1), role: z.enum(['TRAINEE', 'REFERENCE']),
-});
+}).strict();
 const subjectSchema = z.object({
   id: z.string().min(1), syntheticLabel: z.string().min(1), ageMonths: z.number().int().nonnegative(),
   ageBand: z.enum(['UNDER_24_MONTHS', 'AT_OR_OVER_24_MONTHS']), status: z.enum(['ACTIVE', 'REPLACED']),
   replacementFor: z.string().min(1).optional(),
-});
-const deviceSchema = z.object({ id: z.string().min(1), label: z.string().min(1), type: z.string().min(1) });
+}).strict();
+const deviceSchema = z.object({ id: z.string().min(1), label: z.string().min(1), type: z.string().min(1) }).strict();
 const stationSchema = z.object({
   id: z.string().min(1), label: z.string().min(1), subjectId: z.string().min(1), deviceId: z.string().min(1),
   expectedPosition: z.enum(['RECUMBENT', 'STANDING']),
-});
+}).strict();
 const canonicalTimestamp = z.string().refine(value => {
   const parsed = Date.parse(value);
   const match = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,3}))?Z$/.exec(value);
@@ -43,22 +43,22 @@ const measurementSchema = z.object({
   id: z.string().min(1), sessionId: z.string().min(1), measurerId: z.string().min(1), subjectId: z.string().min(1), stationId: z.string().min(1),
   round: z.union([z.literal(1), z.literal(2)]), valueCm: z.number().finite().min(30).max(220), position: z.enum(['RECUMBENT', 'STANDING']),
   revision: z.number().int().positive(), recordedAt: canonicalTimestamp,
-});
+}).strict();
 const observationSchema = z.object({
   id: z.string().min(1), measurerId: z.string().min(1), item: z.string().min(1),
   result: z.enum(['OBSERVED_OK', 'NEEDS_REVIEW', 'NOT_OBSERVED']), note: z.string().optional(),
-});
-const remediationNoteSchema = z.object({ id: z.string().min(1), text: z.string().min(1), createdAt: canonicalTimestamp });
+}).strict();
+const remediationNoteSchema = z.object({ id: z.string().min(1), text: z.string().min(1), createdAt: canonicalTimestamp }).strict();
 const resultSchema = z.object({
   calculationVersion: z.string().min(1), inputRevision: z.number().int().nonnegative(),
   precisionTEM: z.number().finite().nonnegative(), referenceTEM: z.number().finite().nonnegative().nullable(),
   signedDifference: z.number().finite().nullable(), referencePrecisionTEM: z.number().finite().nonnegative(),
   referenceValid: z.boolean(), precisionPass: z.boolean(), referencePass: z.boolean().nullable(),
   protocolValidity: z.discriminatedUnion('valid', [
-    z.object({ valid: z.literal(true), deviations: z.array(z.never()) }),
-    z.object({ valid: z.literal(false), deviations: z.array(z.object({ code: z.literal('POSITION_MISMATCH'), subjectId: z.string(), stationId: z.string(), measurerId: z.string(), round: z.union([z.literal(1), z.literal(2)]), expectedPosition: z.enum(['RECUMBENT','STANDING']), actualPosition: z.enum(['RECUMBENT','STANDING']) })) }),
+    z.object({ valid: z.literal(true), deviations: z.array(z.never()) }).strict(),
+    z.object({ valid: z.literal(false), deviations: z.array(z.object({ code: z.literal('POSITION_MISMATCH'), subjectId: z.string(), stationId: z.string(), measurerId: z.string(), round: z.union([z.literal(1), z.literal(2)]), expectedPosition: z.enum(['RECUMBENT','STANDING']), actualPosition: z.enum(['RECUMBENT','STANDING']) }).strict()) }).strict(),
   ]),
-});
+}).strict();
 
 export const sessionSchema = z.object({
   id: z.string().min(1), protocolSnapshot: protocolProfileSchema, protocolHash: z.string().regex(/^[a-f0-9]{64}$/), protocolVersion: z.string().min(1),
@@ -67,7 +67,7 @@ export const sessionSchema = z.object({
   parentSessionId: z.string().min(1).optional(), trainee: measurerSchema, reference: measurerSchema,
   subjects: z.array(subjectSchema), devices: z.array(deviceSchema), stations: z.array(stationSchema), measurements: z.array(measurementSchema),
   observations: z.array(observationSchema), remediationNotes: z.array(remediationNoteSchema), result: resultSchema.nullable(),
-});
+}).strict();
 
 export const sessionRecordSchema = sessionSchema.extend({ integrityHash: z.string().regex(/^[a-f0-9]{64}$/) });
 

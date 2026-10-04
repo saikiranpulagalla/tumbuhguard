@@ -12,7 +12,7 @@ afterEach(async () => { for (const database of databases) { database.close(); aw
 it('rejects an unknown application schema marker instead of silently migrating it', async () => {
   const database = new TumbuhGuardDB(`test-${crypto.randomUUID()}`); databases.push(database);
   const repository = new SessionRepository(database);
-  await repository.create(createDemoSession());
+  await repository.ensureHomeTemplate(createDemoSession());
   await database.meta.put({ key: 'dbSchemaVersion', value: '999' });
   await expect(repository.get('demo-standardization-001')).rejects.toBeInstanceOf(SchemaIncompatibleError);
 });
@@ -45,7 +45,7 @@ it('bootstraps the schema marker only for an empty local database', async () => 
   const database = new TumbuhGuardDB(`test-${crypto.randomUUID()}`); databases.push(database);
   const repository = new SessionRepository(database);
   const session = createDemoSession();
-  await repository.create(session);
+  await repository.ensureHomeTemplate(session);
   await expect(database.meta.get('dbSchemaVersion')).resolves.toMatchObject({ value: '1' });
 });
 
@@ -53,7 +53,7 @@ it('rejects malformed stored data safely', async () => {
   const database = new TumbuhGuardDB(`test-${crypto.randomUUID()}`); databases.push(database);
   const repository = new SessionRepository(database);
   const session = createDemoSession();
-  await repository.create(session);
+  await repository.ensureHomeTemplate(session);
   await database.sessions.update(session.id, { dataMode: 'REAL' as never });
   await expect(repository.get(session.id)).rejects.toMatchObject({ code: 'STORED_RECORD_INVALID' });
 });
@@ -62,7 +62,7 @@ it('rejects a stored locked state whose required active measurements are incompl
   const database = new TumbuhGuardDB(`test-${crypto.randomUUID()}`); databases.push(database);
   const repository = new SessionRepository(database);
   const original = createDemoSession();
-  await repository.create(original);
+  await repository.ensureHomeTemplate(original);
   const malformed = { ...original, state: 'ROUND1_LOCKED' as const, revision: 1 };
   await database.sessions.put({ ...malformed, integrityHash: await sha256Json(malformed) });
   await expect(repository.get(original.id)).rejects.toMatchObject({ code: 'STORED_RECORD_INVALID' });
@@ -72,7 +72,7 @@ it('rejects contradictory stored reference-validity result fields', async () => 
   const database = new TumbuhGuardDB(`test-${crypto.randomUUID()}`); databases.push(database);
   const repository = new SessionRepository(database);
   const base = createDemoSession('cadre-c-systematic-low');
-  await repository.create(base);
+  await repository.ensureHomeTemplate(createDemoSession());
   const measurements = fixtureMeasurements(base,'cadre-c-systematic-low');
   const validResult = evaluateDemoFixture('cadre-c-systematic-low');
   const malformed = {

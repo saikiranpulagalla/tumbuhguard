@@ -12,9 +12,12 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   webServer: {
-    command: `npm run build && node scripts/serve-dist.mjs ${e2ePort}`,
+    // The release command builds before invoking Playwright. Serving only the
+    // completed dist bundle keeps the browser harness on its parent Node
+    // runtime instead of resolving a different system Node through npm.cmd.
+    command: `"${process.execPath}" scripts/serve-dist.mjs ${e2ePort}`,
     url: e2eUrl,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: process.env.E2E_REUSE_SERVER === '1' || !process.env.CI,
   },
   retries: 0,
   projects: [{ name: 'edge-local', use: { ...devices['Desktop Edge'], channel: 'msedge' } }],

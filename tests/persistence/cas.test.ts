@@ -28,7 +28,7 @@ describe('revision CAS', () => {
     const db = new TumbuhGuardDB(`test-${crypto.randomUUID()}`); databases.push(db);
     const repo = new SessionRepository(db);
     const original = createDemoSession();
-    await repo.create(original);
+    await repo.ensureHomeTemplate(original);
     const a = { ...original, state: 'SETUP_VALID' as const, revision: 1 };
     await repo.saveCAS(a, 0, 'TAB_A');
     const b = { ...original, state: 'SETUP_VALID' as const, revision: 1 };
@@ -39,7 +39,8 @@ describe('revision CAS', () => {
     const db = new TumbuhGuardDB(`test-${crypto.randomUUID()}`); databases.push(db);
     const repo = new SessionRepository(db);
     const parent=remediationParent();
-    await repo.create(parent);
+    await repo.ensureHomeTemplate(createDemoSession());
+    await db.sessions.add({ ...parent, integrityHash: await sha256Json(parent) });
 
     const child=createRestandardizationSession(parent,'child-current','2026-10-03T01:00:00Z');
     await repo.createLinkedCAS(child,parent.id,parent.revision);

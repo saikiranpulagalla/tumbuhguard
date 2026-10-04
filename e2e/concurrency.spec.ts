@@ -37,6 +37,22 @@ async function linkedChildren(page: import('@playwright/test').Page, parentId: s
   }), parentId);
 }
 
+async function activeNonTemplateCount(page: import('@playwright/test').Page): Promise<number> {
+  return page.evaluate(async () => new Promise<number>((resolve, reject) => {
+    const request = indexedDB.open('tumbuhguard-standardize');
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const database = request.result;
+      const records = database.transaction('sessions', 'readonly').objectStore('sessions').getAll();
+      records.onerror = () => reject(records.error);
+      records.onsuccess = () => {
+        database.close();
+        resolve(records.result.filter(record => record.id !== 'demo-standardization-001' && record.state !== 'CLOSED').length);
+      };
+    };
+  }));
+}
+
 test('CAS rejects stale second-tab save and BroadcastChannel provides UX warning', async ({ context }) => {
   const a=await context.newPage();
   await a.goto('/');
@@ -56,6 +72,18 @@ test('CAS rejects stale second-tab save and BroadcastChannel provides UX warning
   await expect(b.getByRole('heading',{name:'Setup valid'})).toBeVisible();
 });
 
+test('N03 concurrent tabs create exactly one active workflow head', async ({ context }) => {
+  const a = await context.newPage();
+  const b = await context.newPage();
+  await Promise.all([a.goto('/'), b.goto('/')]);
+  await Promise.all([
+    a.getByRole('button', { name: 'Start Assessment' }).click(),
+    b.getByRole('button', { name: 'Start Assessment' }).click(),
+  ]);
+  await expect.poll(() => activeNonTemplateCount(a)).toBe(1);
+  await expect(a.getByRole('heading', { name: 'Standardization setup' }).or(b.getByRole('heading', { name: 'Standardization setup' }))).toBeVisible();
+});
+
 test('B08 reset rejects a stale-tab write without resurrecting the deleted session', async ({ context }) => {
   const a = await context.newPage();
   await a.goto('/');
@@ -72,6 +100,26 @@ test('B08 reset rejects a stale-tab write without resurrecting the deleted sessi
 
   await expect(b.getByRole('heading', { name: 'TumbuhGuard Standardize' }).first()).toBeVisible();
   await expect(b.getByRole('button', { name: 'Run 90-sec Demo' })).toBeVisible();
+});
+
+test('N06 SESSION_NOT_FOUND clears a stale screen without BroadcastChannel', async ({ context }) => {
+  const a = await context.newPage();
+  await a.goto('/');
+  await a.getByRole('button', { name: 'Start Assessment' }).click();
+  await expect(a.getByRole('heading', { name: 'Standardization setup' })).toBeVisible();
+
+  const b = await context.newPage();
+  await b.addInitScript(() => {
+    Object.defineProperty(window, 'BroadcastChannel', { value: undefined, configurable: true });
+  });
+  await b.goto('/');
+  await expect(b.getByRole('heading', { name: 'Standardization setup' })).toBeVisible();
+
+  a.once('dialog', dialog => dialog.accept());
+  await a.getByRole('button', { name: 'Reset all local demo data' }).click();
+  await b.getByRole('button', { name: 'Validate synthetic setup' }).click();
+  await expect(b.getByRole('button', { name: 'Start Assessment' })).toBeVisible();
+  await expect(b.getByRole('heading', { name: 'Standardization setup' })).toHaveCount(0);
 });
 
 test('B11 rapid re-standardization creation makes exactly one clean child session', async ({ page }) => {
