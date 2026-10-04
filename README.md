@@ -2,272 +2,308 @@
 
 **Offline practical anthropometry standardization that validates the measurer, not just the measurement.**
 
-> **A measurement can be consistent and still be wrong.**  
-> **Validate the measurer, not just the measurement.**
+> A measurement can be consistent and still be wrong.
 
-TumbuhGuard Standardize is an **offline-first protocol runner for practical length/height anthropometry standardization**. It guides supervisors through blinded repeat measurements, qualified-reference comparison, protocol-validity checks, observation evidence, remediation, and re-standardization.
+TumbuhGuard Standardize is an offline-first protocol runner for practical length/height anthropometry standardization. It guides a supervisor through blinded repeat measurements, qualified-reference comparison, protocol-validity checks, structured observation evidence, remediation, and linked re-standardization.
 
-This repository is a **synthetic-data competition prototype for FIK FAIR 2026 · IGNITE**. It is not a child-growth monitoring application and it is not an official certification system.
+- **Protocol-enforced** — sequence, locks, and evidence readiness are domain rules.
+- **Deterministic** — the same validated inputs always produce the same result.
+- **Offline-first** — after a successful cached load, core assessment work has no network dependency.
 
-## Problem
+## The problem
 
-Digitizing a measurement does not prove that the measurement was performed reliably. Anthropometric measurements can be repeatable but systematically different from a qualified reference, inconsistent between repeats, or affected by technique/equipment conditions.
+Digitizing a measurement does not prove that it was performed reliably. A measurer may record nearly identical values twice yet still disagree materially with a qualified reference. They may also be affected by an invalid reference, an incorrect measurement position, or incomplete evidence about the assessment conditions.
 
-The practical QA problem is therefore not only **what value was recorded**, but **whether the measurer completed a defensible standardization workflow**.
+That distinction matters:
 
-## Solution
+| Question | What it means |
+|---|---|
+| **Is the measurer repeatable?** | Do their own paired measurements agree? |
+| **Does the measurer agree with a qualified reference?** | Does their measurement align sufficiently with the reference measurement? |
 
-TumbuhGuard operationalizes:
+The product problem is therefore not merely recording a value. It is establishing whether that value came from a valid, reviewable assessment workflow.
 
-**Protocol enforcement + evidence integrity + deterministic measurement QA**
+## The key insight
 
-The competition build provides:
+**Repeatable ≠ correct.**
 
-- one length/height standardization profile
-- 10 synthetic subjects
-- one trainee and one qualified reference measurer
-- locked Round 1 followed by blinded Round 2
-- reference-measurer repeatability validity gate
-- deterministic repeatability/agreement mathematics
-- station/device/position provenance
-- observation evidence
-- remediation notes and linked re-standardization
-- IndexedDB recovery, CAS stale-write rejection and integrity hashes
-- offline-after-warmup PWA operation
+The deterministic Cadre C scenario makes this concrete:
 
-## Why it matters
+| Measure | Result |
+|---|---:|
+| Repeatability TEM | approximately `0.071 cm` |
+| Reference-agreement TEM | approximately `0.849 cm` |
+| Signed mean difference | approximately `-1.200 cm` |
 
-ASIK can digitize the record and Plataran Sehat can digitize learning. TumbuhGuard Standardize is positioned as a **proposed practical measurement-quality assessment workflow between training and downstream record entry**.
+The trainee is extremely consistent with themselves, yet disagrees sufficiently with the qualified reference to require re-standardization.
 
-It does not claim to replace existing government systems or to have invented TEM/anthropometric standardization.
+> A spreadsheet can calculate a metric. TumbuhGuard controls whether that metric came from a valid assessment workflow.
 
-## Example: consistent but wrong
+## What TumbuhGuard does
 
-The deterministic **Cadre C** demo illustrates why consistency alone is not enough:
+TumbuhGuard coordinates the complete practical standardization process:
 
-- repeatability TEM: approximately `0.071 cm`
-- qualified-reference agreement TEM: approximately `0.849 cm`
-- signed difference: `-1.2 cm` (descriptive only)
+1. Configure the session and station context.
+2. Record and lock the first measurement round.
+3. Record a blinded second round without exposing first-round values in the normal entry interface.
+4. Record and validate qualified-reference measurements.
+5. Capture required observation evidence before calculation.
+6. Evaluate repeatability, agreement, directional difference, and protocol validity deterministically.
+7. Preserve evidence for review, then close or remediate the assessment.
+8. Create a clean, linked re-standardization session when improvement is required.
 
-The measurer is highly repeatable, but the agreement result requires re-standardization. A spreadsheet can calculate a metric; TumbuhGuard manages whether that metric came from a valid assessment workflow.
-
-## How the standardization workflow works
-
-```text
-Setup
-  ↓
-Round 1 measurement
-  ↓
-Lock Round 1
-  ↓
-Blinded Round 2
-  ↓
-Qualified-reference repeats
-  ↓
-Reference-validity gate
-  ↓
-Deterministic QA result
-  ↓
-Evidence review
-  ↓
-Remediation
-  ↓
-New linked re-standardization session
+```mermaid
+flowchart LR
+    A[Setup] --> B[Round 1]
+    B --> C[Lock Round 1]
+    C --> D[Blinded Round 2]
+    D --> E[Qualified reference]
+    E --> F[Lock reference]
+    F --> G[Observation evidence]
+    G --> H[Deterministic QA]
+    H --> I{Outcome}
+    I -->|Meets profile| J[Close session]
+    I -->|Needs improvement| K[Remediation]
+    K --> L[Linked re-standardization]
 ```
 
-The application uses an explicit state machine and rejects impossible transitions such as Round 2 before Round 1 lock or calculation before reference completion.
+### Blinded second-round entry
 
-### Workflow blinding
+Round-1 values are not exposed in the normal Round-2 entry workflow. This is workflow-level blinding: it prevents accidental influence through the standard interface, while making no cryptographic-secrecy claim about an unrestricted local device owner.
 
-Safe claim:
+## Why this is more than a calculator
 
-> The application enforces blinded measurement in the normal assessment workflow: Round-1 values are not exposed to the Round-2 entry interface.
+| Capability | Simple calculator | TumbuhGuard |
+|---|---:|---:|
+| TEM calculation | ✓ | ✓ |
+| Guided protocol sequence | — | ✓ |
+| Locked measurement rounds | — | ✓ |
+| Blinded Round 2 entry | — | ✓ |
+| Qualified-reference validity | — | ✓ |
+| Observation evidence | — | ✓ |
+| Protocol-position validity | — | ✓ |
+| Stale-write protection | — | ✓ |
+| Linked re-standardization | — | ✓ |
+| Offline local workflow | depends | ✓ |
 
-This is workflow blinding, not cryptographic secrecy against a malicious local device owner using unrestricted DevTools.
+The application preserves the evidence needed to interpret an assessment without pretending to assign causal blame. A position deviation, for example, remains visible as evidence and withholds the normal verdict; it is not silently corrected.
 
-## Scientific methodology
+## Architecture
 
-Repeatability TEM is implemented as:
+```mermaid
+flowchart TB
+    UI[React UI]
+    UI --> WF[Protocol workflow]
+    UI --> EC[Evidence capture]
+    WF --> D[Domain validation]
+    EC --> D
+    D --> Q[Deterministic QA engine]
+    D --> R[Session repository]
+    Q --> O[Result and protocol validity]
+    O --> R
+    R --> Z[Zod structural validation]
+    R --> H[SHA-256 integrity verification]
+    R --> C[Revision CAS]
+    C --> I[(IndexedDB via Dexie)]
+    SW[Workbox service worker] --> CA[(Cached app shell)]
+    CA --> UI
+    BC[BroadcastChannel] -. UX awareness only .-> UI
+```
+
+The browser UI requests actions; the domain layer decides whether they are legal. Persistence validates stored records, checks integrity, and commits only against the expected revision. BroadcastChannel can make another tab aware of a change, but it is not the correctness mechanism: revision compare-and-swap is.
+
+## Protocol state machine
+
+```mermaid
+stateDiagram-v2
+    [*] --> DRAFT
+    DRAFT --> SETUP_VALID
+    SETUP_VALID --> ROUND1_OPEN
+    ROUND1_OPEN --> ROUND1_LOCKED
+    ROUND1_LOCKED --> ROUND2_OPEN
+    ROUND2_OPEN --> ROUND2_LOCKED
+    ROUND2_LOCKED --> REFERENCE_OPEN
+    REFERENCE_OPEN --> REFERENCE_LOCKED
+    REFERENCE_LOCKED --> READY_TO_CALCULATE
+    READY_TO_CALCULATE --> RESULT_VALID
+    RESULT_VALID --> CLOSED
+    RESULT_VALID --> REMEDIATION
+    REMEDIATION --> CLOSED
+```
+
+Illegal transitions are rejected: Round 2 cannot start before Round 1 is locked, locked rounds cannot be edited, and calculation cannot begin until required reference and observation evidence are complete. Re-standardization creates a distinct linked session in `DRAFT`; it never reopens the historical parent.
+
+## Engineering principles
+
+### Deterministic by design
+
+No AI or probabilistic inference determines an assessment result. Validated inputs, protocol profile, and calculation version produce a deterministic result.
+
+### State-machine enforced
+
+Workflow correctness is a domain rule rather than a UI convention. The interface reflects state; it cannot make an illegal transition valid.
+
+### Raw values decide
+
+Threshold classification is based on raw calculation values, never rounded display values. An exact threshold value does not pass under the working profile's strict comparisons.
+
+### CAS concurrency
+
+Every persistence write carries an expected revision:
+
+```text
+expected revision == persisted revision  → commit revision N + 1
+expected revision != persisted revision  → STALE_REVISION
+```
+
+This prevents a stale tab from overwriting a newer session or recreating a session that another tab reset. The workflow also permits only one active assessment head at a time.
+
+### Local-first, offline-first
+
+Assessment state lives in IndexedDB. Vite, `vite-plugin-pwa`, and Workbox provide the cached shell; after it has loaded successfully once, the core workflow, calculation, evidence review, and re-standardization operate without a required remote service.
+
+Service-worker updates are deferred during active protocol states. `navigator.storage.persist()` is opportunistic: denial or absence does not prevent the application from functioning.
+
+## Scientific method
+
+For paired measurements, TumbuhGuard computes:
 
 ```text
 d_i = x_i1 - x_i2
 
-TEM = sqrt(sum(d_i^2) / (2N))
+TEM = sqrt(sum(d_i²) / (2N))
 ```
 
-Pairs are matched by subject ID; duplicates and empty inputs are rejected.
+Pairs are matched by subject identity. Duplicate, malformed, incomplete, and out-of-range measurement inputs are rejected before evaluation.
 
-The working competition profile uses strict raw-value comparisons:
+| Check | Working threshold |
+|---|---:|
+| Trainee repeatability TEM | `< 0.6 cm` |
+| Trainee/reference agreement TEM | `< 0.8 cm` |
+| Reference repeatability TEM | `< 0.4 cm` |
 
-- trainee repeatability TEM `< 0.6 cm`
-- trainee/reference agreement TEM `< 0.8 cm`
-- reference measurer repeatability TEM `< 0.4 cm`
+The application distinguishes:
 
-Classification never uses rounded display values.
+- **Trainee repeatability:** consistency across the trainee's paired rounds.
+- **Reference repeatability:** whether the qualified reference is itself sufficiently repeatable.
+- **Trainee/reference agreement:** the magnitude of disagreement with the reference.
+- **Signed mean difference:** directional descriptive evidence, not a substitute for TEM.
 
-Signed mean difference is descriptive evidence only. Cadre B proves that positive/negative deviations can cancel to a mean near zero while repeatability remains poor. Cadre C proves the headline insight: excellent repeatability can coexist with poor qualified-reference agreement.
+Signed differences can cancel: positive and negative errors may average near zero while disagreement remains large. If reference repeatability is invalid, normal reference-agreement assessment is withheld. If protocol validity fails, evidence is retained but the normal verdict is withheld.
 
-### External-oracle boundary
+## Evidence and integrity
 
-The supplied materials did **not** include the authoritative Annex-13/DHS oracle needed to prove exact reference-agreement parity. Therefore the repository deliberately marks:
+Each session preserves measurement rounds, expected and actual position, station/device context, observations, protocol snapshot, and result evidence. Persisted session structures are validated with Zod; result integrity is checked from source measurements rather than trusting stored derived values alone. SHA-256 integrity checks and revision history provide application-level protection against accidental inconsistency and stale local writes.
 
-```text
-EXTERNAL_ORACLE_PARITY_PENDING
-```
+This is not a claim of tamper-proof storage. A user who controls a local browser profile is outside the application's workflow-level threat model.
 
-The working agreement formula must not be described as verified WHO/DHS parity until that external oracle audit is completed.
+## Privacy by scope
 
-## What TumbuhGuard does not claim
+The current prototype uses synthetic subjects only. It requires no NIK, real child names, photos, addresses, phone numbers, medical-record identifiers, cloud accounts, or remote API.
 
-The competition build does **not** claim:
-
-- Kemenkes certification
-- WHO certification of a cadre/measurer
-- official Kemenkes certification workflow
-- official Kemenkes authorship of the working TEM thresholds
-- WHO authorship of this exact UI sequence
-- diagnosis, stunting prediction or growth monitoring
-- causal attribution of a disagreement to a person/equipment condition without observation evidence
-- tamper-proof local storage
-
-Deployment as an official cadre assessment would require programme validation and approval.
-
-## Offline architecture
-
-The core workflow has no runtime healthcare/cloud/API dependency.
-
-After the application has loaded successfully once and its shell is cached, the complete standardization workflow is designed to operate without network connectivity. Workbox precaches the built HTML/JS/CSS, local icon/manifest, synthetic fixtures and help/protocol copy bundled into the application.
-
-Service-worker updates use a prompted flow. A waiting update is **not allowed to force-reload an active assessment**; apply/reload is enabled only at a safe workflow state.
-
-`navigator.storage.persist()` is requested opportunistically. Denial does not block the application.
-
-## Persistence and integrity
-
-Sessions are stored in IndexedDB through Dexie. Writes use revision compare-and-swap semantics:
-
-```text
-expected revision == stored revision  → save + increment
-expected revision != stored revision  → STALE_REVISION
-```
-
-BroadcastChannel is only a duplicate-tab UX warning. Correctness depends on CAS, not the channel.
-
-Stored sessions are Zod-validated and SHA-256 checked before use. This is described as:
-
-> **Application-level revision history with integrity checks.**
-
-It is not protection against a malicious owner of the same local device.
-
-## Privacy
-
-The competition build is **synthetic-only**. All demo data are synthetic.
-
-Explicit competition-build boundaries:
-
-- no medical diagnosis
-- no official certification
-- no real PII required
-- no AI used
-- methodology requires programme validation before official deployment
-
-It does not require NIK, real child names, photos, addresses, phone numbers, medical-record identifiers, or any real health information. Exports explicitly contain:
+Exports retain their synthetic boundary:
 
 ```text
 dataMode: SYNTHETIC
 synthetic: true
 ```
 
-No AI is used in the application.
+## Demonstration flow
+
+The Home screen offers **Run 90-sec Demo**, which loads the deterministic Cadre C case at the final blinded Round-2 entry. The legal workflow is:
+
+1. Enter the final Round-2 value for S10 (`95.9 cm`) and lock Round 2.
+2. Open qualified-reference measurements and load the synthetic reference fixture.
+3. Lock the reference measurements.
+4. Record each required observation item.
+5. Select **Lock evidence & prepare calculation**.
+6. Select **Calculate deterministic QA result**.
+7. Review measurements, observation, equipment, and protocol evidence; then create linked re-standardization if required.
+
+The expected Cadre C result shows strong self-repeatability alongside insufficient reference agreement, making the distinction between consistency and correctness visible.
 
 ## Technology stack
 
-- React 19 and TypeScript
-- Vite, vite-plugin-pwa and Workbox
-- Dexie / IndexedDB and Zod validation
-- Web Crypto integrity hashing and BroadcastChannel duplicate-tab awareness
-- Vitest and Playwright for deterministic unit, browser and offline verification
+| Layer | Technology |
+|---|---|
+| UI | React 19, TypeScript |
+| Build | Vite 7 |
+| Persistence | Dexie 4, IndexedDB |
+| Validation | Zod 4 |
+| Offline | `vite-plugin-pwa`, Workbox |
+| Integrity | Web Crypto SHA-256 |
+| Concurrency | Revision CAS; BroadcastChannel UX awareness |
+| Unit testing | Vitest 4 |
+| Browser testing | Playwright 1.63 |
 
-The application itself contains no AI/LLM inference: calculations and protocol decisions are deterministic. AI coding assistants were used during development for implementation support, testing, review and adversarial QA.
+## Testing and verification
 
-## Demo
+Verification coverage includes deterministic calculation boundaries, state-machine legality, Round-2 blinding, malformed persistence records, CAS conflicts, concurrent tabs, synthetic-data claim guards, fixture regression, offline/PWA behavior, accessibility, and responsive interaction.
 
-The Home screen includes **Run 90-sec Demo**. It loads the deterministic Cadre C case at the final blinded Round-2 entry:
-
-1. enter S10 repeat `95.9 cm`
-2. lock Round 2
-3. open the reference stage
-4. load the explicit synthetic reference fixture
-5. lock evidence and calculate
-6. show approximately:
-   - repeatability TEM `0.071 cm` — PASS
-   - reference agreement `0.849 cm` — NEEDS RE-STANDARDIZATION
-   - signed difference `-1.200 cm` — descriptive only
-7. inspect Measurements / Observation / Equipment / Protocol evidence
-8. create a linked re-standardization session
-
-
-## Local development
-
-Locked target:
-
-- Node 24 LTS
-- TypeScript strict mode
-- React 19.x
-- Vite 7.x
-- Dexie 4.x / IndexedDB
-- Zod 4.x
-- Vitest 4.x
-- Playwright 1.63.x
-- vite-plugin-pwa / Workbox
-
-With Node 24 and registry access:
+The primary local commands are:
 
 ```bash
-npm ci
-npm run typecheck
-npm run lint
-npm test
-npm run e2e
-npm run build
-npm run verify:fixtures
-npm run release:check
+npm run check
 npm run release:verify
 ```
 
-## Testing
+Release evidence is maintained separately from this overview in [release-v1.0.2.md](docs/release-v1.0.2.md). Scientific claims and their boundaries are documented in [claims-matrix.md](docs/claims-matrix.md) and [protocol-sources.md](docs/protocol-sources.md).
 
-Tier-A coverage is authored across:
+## Repository structure
 
-- `tests/unit/` — calculation boundaries and input parsing
-- `tests/domain/` — protocol/state/blinding/revision/update rules
-- `tests/persistence/` — CAS, integrity, malformed records and schema compatibility
-- `tests/claims/` — privacy, synthetic-only and prohibited-claim guards
-- `tests/fixtures/` — Cadre A/B/C/Invalid Reference
-- `e2e/` — blinding, recovery, two-tab CAS, offline workflow, update safety, hostile input/reset paths, demo and mobile/accessibility checks
+```text
+src/
+  app/          application workflow and update policy
+  domain/       protocol rules, calculations, evidence, and session transitions
+  data/         validation, hashing, export, and IndexedDB repositories
+  features/     workflow UI panels
+  fixtures/     deterministic synthetic scenarios
 
-M03/M04 authoritative external golden fixtures remain intentionally blocked by `EXTERNAL_ORACLE_PARITY_PENDING` rather than fabricated. `npm run check` is the core local verification command; `npm run release:verify` adds the complete Playwright browser/offline suite.
+tests/
+  unit/         calculation and input boundaries
+  domain/       protocol and state rules
+  persistence/  integrity, schema, and CAS behavior
+  fixtures/     scenario regression
+  claims/       privacy and claim guards
 
-## Repository history / release gates
+e2e/            browser, offline, concurrency, accessibility, and responsive flows
+docs/           claims, source boundary, and release evidence
+scripts/        build, fixture, smoke, lint, and release checks
+```
 
-The repository preserves additive Git history. Tags are created only for gates with executed evidence. See:
+## Run locally
 
-- `git log --oneline --decorate --graph --all`
-- `git tag --list`
-- `docs/release-v1.0.2.md`
-- `docs/claims-matrix.md`
-- `docs/protocol-sources.md`
+Requires Node.js 24.
 
-Verified gates span `gate-v0.0-calculation` through `gate-v0.8`, followed by `v0.9.0-rc`, `v1.0.0`, `v1.0.1`, and the current verification candidate **`v1.0.2`**.
+```bash
+npm ci
+npm run dev
+```
 
-## Limitations
+For the core verification suite:
 
-- Exact WHO/UNICEF/DHS Annex-13 reference-agreement parity is pending the authoritative external oracle.
-- Browser-release verification in this environment uses system Microsoft Edge through Playwright; the Playwright-managed Chromium binary is not installed.
-- Competition data are synthetic only; real programme deployment requires privacy/security/programme validation beyond this prototype.
+```bash
+npm run check
+```
+
+For the complete release verification, including browser checks:
+
+```bash
+npm run release:verify
+```
+
+## Scientific scope and limitations
+
+TumbuhGuard implements a practical anthropometry standardization workflow using a working profile informed by established anthropometry-standardization concepts.
+
+- It is not an official certification system.
+- It does not diagnose stunting or any health condition.
+- It is limited to the current length/height workflow and synthetic subjects.
+- Official deployment would require programme, security, privacy, and operational validation.
+- Exact external Annex-13/DHS oracle parity remains pending: `EXTERNAL_ORACLE_PARITY_PENDING`.
+
+The project deliberately does not claim certification by WHO, Kemenkes, or any other authority, and it does not present its working thresholds or UI sequence as an official workflow.
 
 ## Future work
 
-`POST_HACKATHON`
-
-Only after competition release lock: programme validation, authoritative oracle parity audit, and any official-system integration discussions. No AI, cloud backend, diagnosis, growth monitoring, FHIR/SATUSEHAT/ASIK integration, dashboards or analytics are part of V1.
+Future work should begin with independent external-oracle validation, programme validation, and deployment-specific security and privacy design. Those activities are intentionally outside the current local, synthetic-data scope.
