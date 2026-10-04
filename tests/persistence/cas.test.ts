@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { TumbuhGuardDB } from '../../src/data/db';
 import { SessionRepository, StaleRevisionError } from '../../src/data/repositories/session-repository';
 import { createRestandardizationSession } from '../../src/domain/session/restandardization';
-import { transition } from '../../src/domain/session/transition';
+import { REQUIRED_OBSERVATION_ITEMS } from '../../src/domain/evidence/required-observations';
 import { createDemoSession, evaluateDemoFixture, fixtureMeasurements } from '../../src/fixtures/demo';
 
 function remediationParent() {
@@ -14,6 +14,7 @@ function remediationParent() {
     state:'REMEDIATION' as const,
     revision,
     measurements,
+    observations: REQUIRED_OBSERVATION_ITEMS.map((item, index) => ({ id: `observation-${index}`, measurerId: base.trainee.id, item, result: 'OBSERVED_OK' as const })),
     result:{...evaluateDemoFixture('cadre-c-systematic-low'),inputRevision:revision},
   };
 }
@@ -44,14 +45,15 @@ describe('revision CAS', () => {
     await expect(repo.get(child.id)).resolves.toMatchObject({parentSessionId:parent.id,state:'DRAFT'});
     const persistedChild = await repo.get(child.id);
     const persistedParent = await repo.get(parent.id);
+    expect(persistedParent).toMatchObject({ state: 'CLOSED' });
     expect(persistedChild?.updatedAt > (persistedParent?.updatedAt ?? '')).toBe(true);
     await expect(repo.createLinkedCAS(createRestandardizationSession(parent,'child-race','2026-10-03T01:00:01Z'),parent.id,parent.revision)).rejects.toBeInstanceOf(StaleRevisionError);
     await expect(repo.get('child-race')).resolves.toBeUndefined();
 
     const current=await repo.get(parent.id);
     if (!current) throw new Error('parent should exist');
-    const newer=transition(current,{type:'ADD_REMEDIATION_NOTE',note:{id:'note-1',text:'Review technique',createdAt:'2026-10-03T01:01:00Z'}});
-    await repo.saveCAS(newer,current.revision,'ADD_REMEDIATION_NOTE');
+    const sibling={ ...child, id: 'child-sibling', updatedAt: '2026-10-03T01:01:00Z' };
+    await expect(repo.createLinkedCAS(sibling,current.id,current.revision)).rejects.toMatchObject({ code: 'INVALID_TRANSITION' });
     const staleChild=createRestandardizationSession(parent,'child-stale','2026-10-03T01:02:00Z');
     await expect(repo.createLinkedCAS(staleChild,parent.id,parent.revision)).rejects.toBeInstanceOf(StaleRevisionError);
     await expect(repo.get(staleChild.id)).resolves.toBeUndefined();

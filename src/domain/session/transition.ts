@@ -1,20 +1,21 @@
 import { DomainError } from '../errors';
 import { assertMeasurementProvenance, assertMeasurementUnique, assertMeasurementValue, assertSetupIntegrity } from '../protocol/invariants';
+import { assertObservationCanBeAdded, assertObservationEvidence } from '../evidence/required-observations';
 import type { SessionEvent } from './events';
 import type { Session, SessionState } from './state';
 
 const allowed: Readonly<Record<SessionState, readonly SessionEvent['type'][]>> = {
-  DRAFT: ['VALIDATE_SETUP', 'ADD_OBSERVATION'],
-  SETUP_VALID: ['OPEN_ROUND_1', 'ADD_OBSERVATION'],
-  ROUND1_OPEN: ['RECORD_MEASUREMENT', 'LOCK_ROUND_1', 'ADD_OBSERVATION'],
-  ROUND1_LOCKED: ['OPEN_ROUND_2', 'ADD_OBSERVATION'],
-  ROUND2_OPEN: ['RECORD_MEASUREMENT', 'LOCK_ROUND_2', 'ADD_OBSERVATION'],
-  ROUND2_LOCKED: ['OPEN_REFERENCE', 'ADD_OBSERVATION'],
-  REFERENCE_OPEN: ['RECORD_MEASUREMENT', 'LOCK_REFERENCE', 'ADD_OBSERVATION'],
+  DRAFT: ['VALIDATE_SETUP'],
+  SETUP_VALID: ['OPEN_ROUND_1'],
+  ROUND1_OPEN: ['RECORD_MEASUREMENT', 'LOCK_ROUND_1'],
+  ROUND1_LOCKED: ['OPEN_ROUND_2'],
+  ROUND2_OPEN: ['RECORD_MEASUREMENT', 'LOCK_ROUND_2'],
+  ROUND2_LOCKED: ['OPEN_REFERENCE'],
+  REFERENCE_OPEN: ['RECORD_MEASUREMENT', 'LOCK_REFERENCE'],
   REFERENCE_LOCKED: ['MARK_READY', 'ADD_OBSERVATION'],
-  READY_TO_CALCULATE: ['SET_RESULT', 'ADD_OBSERVATION'],
-  RESULT_VALID: ['ADD_OBSERVATION', 'START_REMEDIATION', 'CLOSE_SESSION', 'INVALIDATE_RESULT'],
-  REMEDIATION: ['ADD_OBSERVATION', 'ADD_REMEDIATION_NOTE', 'CLOSE_SESSION'],
+  READY_TO_CALCULATE: ['SET_RESULT'],
+  RESULT_VALID: ['START_REMEDIATION', 'CLOSE_SESSION', 'INVALIDATE_RESULT'],
+  REMEDIATION: ['ADD_REMEDIATION_NOTE', 'CLOSE_SESSION'],
   CLOSED: [],
 };
 
@@ -52,7 +53,9 @@ export function transition(session: Session, event: SessionEvent): Session {
       assertRoundComplete(session, session.reference.id, 1);
       assertRoundComplete(session, session.reference.id, 2);
       return { ...session, state: 'REFERENCE_LOCKED', ...nextRevision(session) };
-    case 'MARK_READY': return { ...session, state: 'READY_TO_CALCULATE', ...nextRevision(session) };
+    case 'MARK_READY':
+      assertObservationEvidence(session, true);
+      return { ...session, state: 'READY_TO_CALCULATE', ...nextRevision(session) };
     case 'RECORD_MEASUREMENT': {
       assertMeasurementValue(event.measurement.valueCm);
       assertMeasurementProvenance(session, event.measurement);
@@ -72,6 +75,7 @@ export function transition(session: Session, event: SessionEvent): Session {
       return { ...session, result: event.result, state: 'RESULT_VALID', ...next };
     }
     case 'ADD_OBSERVATION':
+      assertObservationCanBeAdded(session, event.observation);
       return { ...session, observations: [...session.observations, event.observation], ...advanceKeepingResultCurrent(session) };
     case 'START_REMEDIATION': return { ...session, state: 'REMEDIATION', ...advanceKeepingResultCurrent(session) };
     case 'ADD_REMEDIATION_NOTE':

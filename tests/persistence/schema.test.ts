@@ -4,6 +4,7 @@ import { TumbuhGuardDB } from '../../src/data/db';
 import { SchemaIncompatibleError, SessionRepository } from '../../src/data/repositories/session-repository';
 import { sha256Json } from '../../src/data/transactions/hash';
 import { createDemoSession, evaluateDemoFixture, fixtureMeasurements } from '../../src/fixtures/demo';
+import { assertSessionShape } from '../../src/data/validation';
 
 const databases: TumbuhGuardDB[] = [];
 afterEach(async () => { for (const database of databases) { database.close(); await database.delete(); } databases.length = 0; });
@@ -83,4 +84,32 @@ it('rejects contradictory stored reference-validity result fields', async () => 
   };
   await database.sessions.put({ ...malformed, integrityHash: await sha256Json(malformed) });
   await expect(repository.get(base.id)).rejects.toMatchObject({ code: 'STORED_RECORD_INVALID' });
+});
+
+it('rejects future-stage measurements and remediation evidence in earlier persisted states', () => {
+  const base = createDemoSession();
+  const measurement = fixtureMeasurements(base, 'cadre-a-good')[0]!;
+  const cases = [
+    { ...base, state: 'DRAFT' as const, revision: 1, measurements: [measurement] },
+    { ...base, state: 'SETUP_VALID' as const, revision: 1, measurements: [measurement] },
+    { ...base, state: 'ROUND1_OPEN' as const, revision: 2, measurements: [{ ...measurement, round: 2 }] },
+    { ...base, state: 'ROUND1_LOCKED' as const, revision: 2, measurements: [{ ...measurement, measurerId: base.reference.id }] },
+    { ...base, state: 'ROUND2_OPEN' as const, revision: 2, measurements: [{ ...measurement, measurerId: base.reference.id }] },
+    { ...base, state: 'REFERENCE_OPEN' as const, revision: 1, remediationNotes: [{ id: 'note-1', text: 'Too early', createdAt: '2026-10-03T01:00:00Z' }] },
+  ];
+  for (const candidate of cases) expect(() => assertSessionShape(candidate)).toThrow();
+});
+
+it('rejects invalid UTC timestamps and duplicate observation/remediation structure', () => {
+  const base = createDemoSession();
+  expect(() => assertSessionShape({ ...base, updatedAt: 'zzz' })).toThrow();
+  expect(() => assertSessionShape({ ...base, measurements: [{ ...fixtureMeasurements(base, 'cadre-a-good')[0]!, revision: 1, recordedAt: '2026-99-99T00:00:00Z' }], revision: 1 })).toThrow();
+  const duplicateObservation = { id: 'observation', measurerId: base.trainee.id, item: 'Correct positioning before reading', result: 'OBSERVED_OK' as const };
+  expect(() => assertSessionShape({ ...base, observations: [duplicateObservation, duplicateObservation] })).toThrow();
+  const duplicateNote = { id: 'note', text: 'Review technique', createdAt: '2026-10-03T01:00:00Z' };
+  expect(() => assertSessionShape({ ...base, state: 'REMEDIATION' as const, revision: 41, measurements: fixtureMeasurements(base, 'cadre-a-good'), observations: [
+    { id: 'o1', measurerId: base.trainee.id, item: 'Correct positioning before reading', result: 'OBSERVED_OK' as const },
+    { id: 'o2', measurerId: base.trainee.id, item: 'Equipment/station check performed', result: 'OBSERVED_OK' as const },
+    { id: 'o3', measurerId: base.trainee.id, item: 'Reading recorded without prompting', result: 'OBSERVED_OK' as const },
+  ], result: { ...evaluateDemoFixture('cadre-a-good'), inputRevision: 41 }, remediationNotes: [duplicateNote, duplicateNote] })).toThrow();
 });

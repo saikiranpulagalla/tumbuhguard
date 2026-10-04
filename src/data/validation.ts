@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { DomainError } from '../domain/errors';
 import { expectedPositionFor } from '../domain/protocol/profile';
 import { evaluateSessionResult } from '../domain/protocol/session-evaluation';
+import { assertObservationEvidence } from '../domain/evidence/required-observations';
 import type { Session } from '../domain/session/state';
 import type { SessionRecord } from './schema';
 
@@ -30,16 +31,22 @@ const stationSchema = z.object({
   id: z.string().min(1), label: z.string().min(1), subjectId: z.string().min(1), deviceId: z.string().min(1),
   expectedPosition: z.enum(['RECUMBENT', 'STANDING']),
 });
+const canonicalTimestamp = z.string().refine(value => {
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed)
+    && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,3})?Z$/.test(value);
+}, 'Expected canonical ISO-8601 UTC timestamp');
+
 const measurementSchema = z.object({
   id: z.string().min(1), sessionId: z.string().min(1), measurerId: z.string().min(1), subjectId: z.string().min(1), stationId: z.string().min(1),
   round: z.union([z.literal(1), z.literal(2)]), valueCm: z.number().finite().min(30).max(220), position: z.enum(['RECUMBENT', 'STANDING']),
-  revision: z.number().int().positive(), recordedAt: z.string().min(1),
+  revision: z.number().int().positive(), recordedAt: canonicalTimestamp,
 });
 const observationSchema = z.object({
   id: z.string().min(1), measurerId: z.string().min(1), item: z.string().min(1),
   result: z.enum(['OBSERVED_OK', 'NEEDS_REVIEW', 'NOT_OBSERVED']), note: z.string().optional(),
 });
-const remediationNoteSchema = z.object({ id: z.string().min(1), text: z.string().min(1), createdAt: z.string().min(1) });
+const remediationNoteSchema = z.object({ id: z.string().min(1), text: z.string().min(1), createdAt: canonicalTimestamp });
 const resultSchema = z.object({
   calculationVersion: z.string().min(1), inputRevision: z.number().int().nonnegative(),
   precisionTEM: z.number().finite().nonnegative(), referenceTEM: z.number().finite().nonnegative().nullable(),
@@ -54,7 +61,7 @@ const resultSchema = z.object({
 export const sessionSchema = z.object({
   id: z.string().min(1), protocolSnapshot: protocolProfileSchema, protocolHash: z.string().regex(/^[a-f0-9]{64}$/), protocolVersion: z.string().min(1),
   state: z.enum(['DRAFT','SETUP_VALID','ROUND1_OPEN','ROUND1_LOCKED','ROUND2_OPEN','ROUND2_LOCKED','REFERENCE_OPEN','REFERENCE_LOCKED','READY_TO_CALCULATE','RESULT_VALID','REMEDIATION','CLOSED']),
-  revision: z.number().int().nonnegative(), createdAt: z.string().min(1), updatedAt: z.string().min(1), dataMode: z.literal('SYNTHETIC'),
+  revision: z.number().int().nonnegative(), createdAt: canonicalTimestamp, updatedAt: canonicalTimestamp, dataMode: z.literal('SYNTHETIC'),
   parentSessionId: z.string().min(1).optional(), trainee: measurerSchema, reference: measurerSchema,
   subjects: z.array(subjectSchema), devices: z.array(deviceSchema), stations: z.array(stationSchema), measurements: z.array(measurementSchema),
   observations: z.array(observationSchema), remediationNotes: z.array(remediationNoteSchema), result: resultSchema.nullable(),
@@ -126,28 +133,60 @@ function assertCrossFieldConsistency(session: Session): void {
     measurementKeys.add(key);
   }
 
-  if (session.state !== 'DRAFT' && activeIds.size !== session.protocolSnapshot.requiredSubjectCount) {
-    throw new DomainError('STORED_RECORD_INVALID', 'Progressed session has the wrong active subject count');
+  // Every product-created DRAFT includes the complete synthetic station/device
+  // scaffold.  Keep persisted DRAFT records equally renderable by SetupPanel.
+  if (activeIds.size !== session.protocolSnapshot.requiredSubjectCount) {
+    throw new DomainError('STORED_RECORD_INVALID', 'Stored session has the wrong active subject count');
   }
-  if (session.state !== 'DRAFT') {
-    for (const activeId of activeIds) {
-      if (!stationSubjectIds.has(activeId)) throw new DomainError('STORED_RECORD_INVALID', 'Progressed session is missing active station provenance');
-    }
+  for (const activeId of activeIds) {
+    if (!stationSubjectIds.has(activeId)) throw new DomainError('STORED_RECORD_INVALID', 'Stored session is missing active station provenance');
+  }
+  {
+    const active = session.subjects.filter(subject => subject.status === 'ACTIVE');
     if (session.protocolSnapshot.id === 'tg-standardize-length-height') {
-      const active = session.subjects.filter(subject => subject.status === 'ACTIVE');
       const under24 = active.filter(subject => subject.ageBand === 'UNDER_24_MONTHS').length;
       const atOrOver24 = active.filter(subject => subject.ageBand === 'AT_OR_OVER_24_MONTHS').length;
-      if (under24 !== 5 || atOrOver24 !== 5) throw new DomainError('STORED_RECORD_INVALID', 'Progressed session has invalid competition age composition');
+      if (under24 !== 5 || atOrOver24 !== 5) throw new DomainError('STORED_RECORD_INVALID', 'Stored session has invalid competition age composition');
     }
   }
 
   const stateOrder = ['DRAFT','SETUP_VALID','ROUND1_OPEN','ROUND1_LOCKED','ROUND2_OPEN','ROUND2_LOCKED','REFERENCE_OPEN','REFERENCE_LOCKED','READY_TO_CALCULATE','RESULT_VALID','REMEDIATION','CLOSED'] as const;
   const atLeast = (state: typeof stateOrder[number]) => stateOrder.indexOf(session.state) >= stateOrder.indexOf(state);
   const hasMeasurement = (subjectId: string, measurerId: string, round: 1|2) => session.measurements.some(row => row.subjectId === subjectId && row.measurerId === measurerId && row.round === round);
+  for (const measurement of session.measurements) {
+    const traineeRoundOne = measurement.measurerId === session.trainee.id && measurement.round === 1;
+    const traineeRoundTwo = measurement.measurerId === session.trainee.id && measurement.round === 2;
+    const reference = measurement.measurerId === session.reference.id;
+    const permitted = session.state === 'ROUND1_OPEN'
+      ? traineeRoundOne
+      : session.state === 'ROUND1_LOCKED'
+        ? traineeRoundOne
+        : session.state === 'ROUND2_OPEN' || session.state === 'ROUND2_LOCKED'
+          ? traineeRoundOne || traineeRoundTwo
+          : atLeast('REFERENCE_OPEN')
+            ? traineeRoundOne || traineeRoundTwo || reference
+            : false;
+    if (!permitted) throw new DomainError('STORED_RECORD_INVALID', 'Stored session contains measurement data beyond its workflow state');
+  }
   if (atLeast('ROUND1_LOCKED')) for (const id of activeIds) if (!hasMeasurement(id, session.trainee.id, 1)) throw new DomainError('STORED_RECORD_INVALID', 'Stored state claims Round 1 is locked but active measurements are incomplete');
   if (atLeast('ROUND2_LOCKED')) for (const id of activeIds) if (!hasMeasurement(id, session.trainee.id, 2)) throw new DomainError('STORED_RECORD_INVALID', 'Stored state claims Round 2 is locked but active measurements are incomplete');
   if (atLeast('REFERENCE_LOCKED')) for (const id of activeIds) {
     if (!hasMeasurement(id, session.reference.id, 1) || !hasMeasurement(id, session.reference.id, 2)) throw new DomainError('STORED_RECORD_INVALID', 'Stored state claims reference measurements are locked but active pairs are incomplete');
+  }
+
+  try {
+    assertObservationEvidence(session, atLeast('READY_TO_CALCULATE'));
+  } catch (error) {
+    throw new DomainError('STORED_RECORD_INVALID', error instanceof Error ? error.message : 'Stored observation evidence is invalid');
+  }
+
+  const remediationIds = new Set<string>();
+  for (const note of session.remediationNotes) {
+    if (remediationIds.has(note.id)) throw new DomainError('STORED_RECORD_INVALID', 'Stored session contains duplicate remediation note IDs');
+    remediationIds.add(note.id);
+  }
+  if (session.remediationNotes.length > 0 && session.state !== 'REMEDIATION' && session.state !== 'CLOSED') {
+    throw new DomainError('STORED_RECORD_INVALID', 'Stored remediation evidence appears before remediation');
   }
 
   const resultState = session.state === 'RESULT_VALID' || session.state === 'REMEDIATION' || session.state === 'CLOSED';

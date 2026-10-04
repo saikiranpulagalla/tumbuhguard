@@ -115,6 +115,10 @@ export class SessionRepository {
     const childIntegrityHash = await sha256Json(nextChild);
     const nextParent: Session = {
       ...parent,
+      // A remediation assessment has one direct continuation.  Closing the
+      // parent in the same transaction makes it historical and prevents a
+      // later current-revision sibling from being created.
+      state: 'CLOSED',
       revision: parent.revision + 1,
       updatedAt: auditAt,
       result: parent.result ? { ...parent.result, inputRevision: parent.revision + 1 } : null,
@@ -126,6 +130,9 @@ export class SessionRepository {
       const parent = parseStoredSessionRecord(parentRaw);
       if (parent.revision !== expectedParentRevision) throw new StaleRevisionError(expectedParentRevision, parent.revision);
       if (parent.state !== 'REMEDIATION') throw new DomainError('INVALID_TRANSITION', 'Parent session is no longer in remediation');
+      if (await this.database.sessions.where('parentSessionId').equals(parentId).count()) {
+        throw new DomainError('INVALID_TRANSITION', 'Parent session already has a re-standardization continuation');
+      }
       await this.database.sessions.add({ ...nextChild, integrityHash: childIntegrityHash });
       await this.database.sessions.put({ ...nextParent, integrityHash: parentIntegrityHash });
       await this.database.audit.add({

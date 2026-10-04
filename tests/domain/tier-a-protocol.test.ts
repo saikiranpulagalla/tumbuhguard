@@ -128,11 +128,11 @@ describe('Tier A protocol/state', () => {
     expect(changed.result).toBeNull();
   });
 
-  it('non-calculation writes keep a valid result current across CAS revisions', () => {
+  it('remediation transition keeps a valid result current across CAS revisions', () => {
     const base=createDemoSession();
     const result={calculationVersion:'x',inputRevision:5,precisionTEM:0.1,referenceTEM:0.1,signedDifference:0,referencePrecisionTEM:0.1,referenceValid:true,precisionPass:true,referencePass:true};
     const session={...base,state:'RESULT_VALID' as const,revision:5,result};
-    const next=transition(session,{type:'ADD_OBSERVATION',observation:{id:'O',measurerId:session.trainee.id,item:'x',result:'OBSERVED_OK'}});
+    const next=transition(session,{type:'START_REMEDIATION'});
     expect(resultIsCurrent(next)).toBe(true);
   });
 });

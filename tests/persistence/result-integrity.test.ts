@@ -5,17 +5,22 @@ import { SessionRepository } from '../../src/data/repositories/session-repositor
 import { sha256Json } from '../../src/data/transactions/hash';
 import { assertSessionShape } from '../../src/data/validation';
 import { createDemoSession, fixtureMeasurements } from '../../src/fixtures/demo';
+import { REQUIRED_OBSERVATION_ITEMS } from '../../src/domain/evidence/required-observations';
+
+function requiredObservations(traineeId: string) {
+  return REQUIRED_OBSERVATION_ITEMS.map((item, index) => ({ id: `observation-${index}`, measurerId: traineeId, item, result: 'OBSERVED_OK' as const }));
+}
 
 function calculated() {
   const base = createDemoSession('cadre-c-systematic-low');
   const measurements = fixtureMeasurements(base, 'cadre-c-systematic-low');
-  return calculateSession({ ...base, state: 'READY_TO_CALCULATE', revision: measurements.length, measurements });
+  return calculateSession({ ...base, state: 'READY_TO_CALCULATE', revision: measurements.length, measurements, observations: requiredObservations(base.trainee.id) });
 }
 
 function calculatedFixture(fixture: Parameters<typeof createDemoSession>[0]) {
   const base = createDemoSession(fixture);
   const measurements = fixtureMeasurements(base, fixture);
-  return calculateSession({ ...base, state: 'READY_TO_CALCULATE', revision: measurements.length, measurements });
+  return calculateSession({ ...base, state: 'READY_TO_CALCULATE', revision: measurements.length, measurements, observations: requiredObservations(base.trainee.id) });
 }
 
 it('RI01 accepts a result derived from its source measurements', () => {
