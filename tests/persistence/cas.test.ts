@@ -42,6 +42,9 @@ describe('revision CAS', () => {
     const child=createRestandardizationSession(parent,'child-current','2026-10-03T01:00:00Z');
     await repo.createLinkedCAS(child,parent.id,parent.revision);
     await expect(repo.get(child.id)).resolves.toMatchObject({parentSessionId:parent.id,state:'DRAFT'});
+    const persistedChild = await repo.get(child.id);
+    const persistedParent = await repo.get(parent.id);
+    expect(persistedChild?.updatedAt > (persistedParent?.updatedAt ?? '')).toBe(true);
     await expect(repo.createLinkedCAS(createRestandardizationSession(parent,'child-race','2026-10-03T01:00:01Z'),parent.id,parent.revision)).rejects.toBeInstanceOf(StaleRevisionError);
     await expect(repo.get('child-race')).resolves.toBeUndefined();
 

@@ -104,9 +104,15 @@ export class SessionRepository {
     const verifiedParent = await this.validatedRecord(parentId);
     if (!verifiedParent) throw new DomainError('SESSION_NOT_FOUND');
     const { integrityHash: _, ...parent } = verifiedParent;
-    const childIntegrityHash = await sha256Json(child);
     const auditId = crypto.randomUUID();
     const auditAt = new Date().toISOString();
+    // The child is the active continuation after this transaction. Make its
+    // recency explicit so recovery resumes it instead of the revised parent.
+    const nextChild: Session = {
+      ...child,
+      updatedAt: new Date(Date.parse(auditAt) + 1).toISOString(),
+    };
+    const childIntegrityHash = await sha256Json(nextChild);
     const nextParent: Session = {
       ...parent,
       revision: parent.revision + 1,
@@ -120,7 +126,7 @@ export class SessionRepository {
       const parent = parseStoredSessionRecord(parentRaw);
       if (parent.revision !== expectedParentRevision) throw new StaleRevisionError(expectedParentRevision, parent.revision);
       if (parent.state !== 'REMEDIATION') throw new DomainError('INVALID_TRANSITION', 'Parent session is no longer in remediation');
-      await this.database.sessions.add({ ...child, integrityHash: childIntegrityHash });
+      await this.database.sessions.add({ ...nextChild, integrityHash: childIntegrityHash });
       await this.database.sessions.put({ ...nextParent, integrityHash: parentIntegrityHash });
       await this.database.audit.add({
         id: auditId,
