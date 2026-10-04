@@ -90,6 +90,28 @@ test('N03 concurrent tabs create exactly one active workflow head', async ({ con
   }).toBe(1);
 });
 
+test('N03 Assessment versus Demo race preserves exactly one active workflow head', async ({ context }) => {
+  const assessment = await context.newPage();
+  const demo = await context.newPage();
+  await Promise.all([assessment.goto('/'), demo.goto('/')]);
+  await Promise.all([
+    assessment.getByRole('button', { name: 'Start Assessment' }).click(),
+    demo.getByRole('button', { name: 'Run 90-sec Demo' }).click(),
+  ]);
+  await expect.poll(() => activeNonTemplateCount(assessment)).toBe(1);
+});
+
+test('N03 Demo versus Assessment race preserves exactly one active workflow head', async ({ context }) => {
+  const demo = await context.newPage();
+  const assessment = await context.newPage();
+  await Promise.all([demo.goto('/'), assessment.goto('/')]);
+  await Promise.all([
+    demo.getByRole('button', { name: 'Run 90-sec Demo' }).click(),
+    assessment.getByRole('button', { name: 'Start Assessment' }).click(),
+  ]);
+  await expect.poll(() => activeNonTemplateCount(demo)).toBe(1);
+});
+
 test('B08 reset rejects a stale-tab write without resurrecting the deleted session', async ({ context }) => {
   const a = await context.newPage();
   await a.goto('/');
