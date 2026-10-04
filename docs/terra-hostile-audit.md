@@ -458,3 +458,5 @@ The app defers a waiting service-worker update during active assessment states: 
 The evidence category controls now use ordinary labelled buttons with `aria-pressed`, rather than an incomplete ARIA tab implementation. Keyboard-only browser checks, error association, visible focus, status text, Round-2 accessibility blinding, and basic touch-target sizing passed. Responsive production-browser checks at 320, 360, 390, 412, 768, 1024, and 1440 pixels passed with no page-level horizontal overflow.
 
 These results resolve the previously blocked offline/PWA, evidence-navigation accessibility, and responsive execution findings. Exact external Annex-13/DHS parity remains `EXTERNAL_ORACLE_PARITY_PENDING`.
+
+Fresh-clone repetition from the final Phase 10 commit passed Node-24 dependency installation, typecheck, lint, unit suite, production build, B00–B12, and O01–O10. The browser suites used an isolated loopback port to avoid accidental reuse of a previous local server; the production PWA network assertion now compares request origins dynamically rather than relying on a fixed test port.
