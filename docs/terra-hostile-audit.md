@@ -448,3 +448,13 @@ The previously blocked browser checks were executed against the actual productio
 Round-2 Back, Forward, refresh, close/reopen, and second-tab checks passed without exposing Round-1 values. Post-assessment evidence intentionally displayed the recorded Round-1, Round-2, and reference values, confirming that blinding is scoped to entry rather than historical evidence review. Two-tab CAS, reset stale-tab protection, rapid mouse/keyboard measurement submission, and single/two-tab re-standardization races also passed. The latter introduced a focused in-flight UI guard so two rapid local activations cannot overwrite the newly opened child-session view; persistence CAS remains the cross-tab correctness mechanism.
 
 This resolves the workflow-level browser blockers documented above. It does not claim cryptographic secrecy, full offline behavior, accessibility conformance, responsive validation, or external Annex-13/DHS oracle parity.
+
+## Phase 10 resolution — offline, accessibility, and responsive execution
+
+On 2026-10-04, the actual production `dist/` bundle was exercised in Playwright `1.63.0` using system Microsoft Edge `154.0.4258.53` (headless, one worker, zero retries). The generated service worker controlled the warmed page before offline mode was enabled. A full assessment, calculation, evidence review, remediation, linked re-standardization, and same-context close/reopen completed while offline. No external runtime request was required by the exercised workflow.
+
+The app defers a waiting service-worker update during active assessment states: a deliberate waiting worker did not force navigation or discard active Round 1 state. Denied and unavailable `navigator.storage.persist` APIs were also exercised without preventing local use.
+
+The evidence category controls now use ordinary labelled buttons with `aria-pressed`, rather than an incomplete ARIA tab implementation. Keyboard-only browser checks, error association, visible focus, status text, Round-2 accessibility blinding, and basic touch-target sizing passed. Responsive production-browser checks at 320, 360, 390, 412, 768, 1024, and 1440 pixels passed with no page-level horizontal overflow.
+
+These results resolve the previously blocked offline/PWA, evidence-navigation accessibility, and responsive execution findings. Exact external Annex-13/DHS parity remains `EXTERNAL_ORACLE_PARITY_PENDING`.

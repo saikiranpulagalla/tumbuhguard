@@ -328,3 +328,15 @@ The deterministic `dist/` harness ran the complete workflow/persistence browser 
 Browser evidence added in commits `27cd473` (duplicate-safe Enter), `9126463` (serialized linked-session creation and B11/B12), and `ce37072` (post-assessment evidence assertion). B06 proves the deliberate phase boundary: Cadre C's `73.0 cm` Round 1, `72.9 cm` Round 2, and `74.2 cm` reference reading are absent during blinded entry and visible in Results/Evidence afterward. B11 proves exactly one empty DRAFT child with the correct `parentSessionId`; B12 proves the stale tab receives `STALE_REVISION` and cannot create a second child.
 
 The three consecutive full unit runs after these changes each passed: `20` files, `124` passing tests, and `2` intentional external-oracle skips. Production build generated the PWA manifest, `sw.js`, Workbox runtime, and local assets. This is build-generation evidence only; offline behavior remains unverified.
+
+## Phase 10 — production PWA, accessibility, and responsive verification
+
+Executed on 2026-10-04 with Node `v24.19.0`, npm `10.9.0`, Playwright `1.63.0`, and system Microsoft Edge `154.0.4258.53` through the Playwright `msedge` channel (headless, one worker, zero retries). Managed Playwright Chromium remains unavailable; these are explicitly system-Edge browser results.
+
+The generated production `dist/` bundle was served by the repository's bounded local static server. The complete B00–B12 regression suite passed: `15 passed` in `25.6s`, with no unexpected page errors. The server exited after the suite.
+
+The production PWA suite passed: `3 passed` in `16.0s`. It establishes O01–O07 and O10 with a warm-cache service-worker-controlled reload followed by the full offline workflow: Home, Setup, both measurement rounds, reference, calculation, evidence, remediation, linked re-standardization, and same-context offline close/reopen. It also establishes O08 by registering a deliberately waiting worker and verifying that an active Round 1 assessment is neither reloaded nor lost, and O09 by running with `navigator.storage.persist` denied and absent. The exercised workflow completed without an external network dependency.
+
+Accessibility browser checks passed for labelled inputs and error association, keyboard-only workflow entry, visible focus, semantic evidence-category buttons (not incomplete ARIA tabs), non-colour status text, Round-2 ARIA blinding, and 44px minimum controls. Responsive browser checks passed at widths `320`, `360`, `390`, `412`, `768`, `1024`, and `1440` for Home, Setup, Round 1, Results, and Evidence: no page-level horizontal overflow, accessible controls remained present, and measurement input retained decimal input mode.
+
+One persistence recovery defect was found by the real offline reopen journey: after linked re-standardization, the parent session could have a newer timestamp than its active child, causing recovery to choose the parent. Child creation now assigns the child a deterministic timestamp one millisecond after the parent audit update. The repository regression asserts that ordering, and offline reopen now restores the new child setup session.
