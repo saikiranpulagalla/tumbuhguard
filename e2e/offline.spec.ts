@@ -4,7 +4,7 @@ async function waitForOfflineReady(page: import('@playwright/test').Page) {
   await page.goto('/');
   await page.evaluate(async () => { if ('serviceWorker' in navigator) await navigator.serviceWorker.ready; });
   await page.reload();
-  await expect(page.getByRole('heading',{name:'TumbuhGuard Standardize'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'TumbuhGuard Standardize'}).first()).toBeVisible();
 }
 
 test('warm-cache complete Cadre C workflow and re-standardization work offline', async ({ page, context }) => {
