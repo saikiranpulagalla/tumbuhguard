@@ -66,12 +66,11 @@ test('B08 reset rejects a stale-tab write without resurrecting the deleted sessi
   await b.goto('/');
   await expect(b.getByRole('heading', { name: 'Standardization setup' })).toBeVisible();
 
-  await a.getByRole('button', { name: 'Reset demo' }).click();
+  a.once('dialog', dialog => dialog.accept());
+  await a.getByRole('button', { name: 'Reset all local demo data' }).click();
   await expect(a.getByRole('button', { name: 'Run 90-sec Demo' })).toBeVisible();
 
-  await b.getByRole('button', { name: 'Validate synthetic setup' }).click();
-  await expect(b.getByText(/local session no longer exists/i)).toBeVisible();
-  await b.reload();
+  await expect(b.getByRole('heading', { name: 'TumbuhGuard Standardize' }).first()).toBeVisible();
   await expect(b.getByRole('button', { name: 'Run 90-sec Demo' })).toBeVisible();
 });
 

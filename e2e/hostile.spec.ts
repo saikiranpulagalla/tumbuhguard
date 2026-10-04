@@ -36,7 +36,8 @@ test('B10 rapid Enter submits one measurement only', async ({ page }) => {
 
 test('reset reconstructs deterministic synthetic home state and survives reload', async ({ page }) => {
   await openRoundOne(page);
-  await page.getByRole('button',{name:'Reset demo'}).click();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button',{name:'Reset all local demo data'}).click();
   await expect(page.getByRole('button',{name:'Run 90-sec Demo'})).toBeVisible();
   await expect(page.getByText('SYNTHETIC DEMO')).toBeVisible();
   await page.reload();

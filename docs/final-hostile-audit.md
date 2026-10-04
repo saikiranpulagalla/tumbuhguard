@@ -1,5 +1,17 @@
 # Final hostile audit — RC.4
 
+## Targeted post-V1 repair note
+
+The entries below describe the evidence that was executed for RC.4. They do
+not claim that every action was interrupted while IndexedDB was pending. In
+particular, H01 records recovery after a committed measurement save and H02
+records Back safety during entry; neither is a simulated mid-transaction
+interruption. Remote-reset correctness remains CAS-based; the post-V1 repair
+also returns notified tabs to a safe Home/recovery view so they do not retain
+actionable deleted-session UI. The next patch-release verification must repeat
+the browser/offline matrix before these historical rows are used as release
+evidence.
+
 Executed on 2026-10-04 against the production `dist/` bundle using Playwright 1.63.0 and system Microsoft Edge 154.0.4258.53 (headless, one worker, zero retries). The audit uses browser tests where a browser interaction is material and the executed unit/persistence suite for deterministic storage and mathematical invariants.
 
 | ID | Scenario | Result | Executed evidence |

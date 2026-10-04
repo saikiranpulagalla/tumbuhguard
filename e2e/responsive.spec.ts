@@ -28,7 +28,8 @@ for (const width of widths) {
     await expect(page.getByLabel('Synthetic Subject 01 measurement in centimetres')).toHaveAttribute('inputmode', 'decimal');
     await assertViewportFit(page);
 
-    await page.getByRole('button', { name: 'Reset demo' }).click();
+    page.once('dialog', dialog => dialog.accept());
+    await page.getByRole('button', { name: 'Reset all local demo data' }).click();
     await finishCadreCToResult(page);
     await expect(page.getByRole('heading', { name: 'Standardization evidence' })).toBeVisible();
     await assertViewportFit(page);

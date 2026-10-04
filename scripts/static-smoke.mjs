@@ -29,7 +29,10 @@ const direct=[...Object.keys(pkg.dependencies??{}),...Object.keys(pkg.devDepende
 const unresolved=direct.filter(name=>!Object.prototype.hasOwnProperty.call(lock.packages??{},`node_modules/${name}`));
 
 const buildInfo=read('src/app/build-info.ts');
-assert.match(buildInfo,/buildId:\s*'tg-2026-10-03-rc\.3'/);
+const buildVersion = buildInfo.match(/version:\s*'([^']+)'/)?.[1];
+const buildId = buildInfo.match(/buildId:\s*'([^']+)'/)?.[1];
+assert.equal(buildVersion,pkg.version,'application build version must match package version');
+assert.ok(buildId && !/dev|placeholder|unknown|rc/i.test(buildId),'build ID must identify a release build');
 assert.match(buildInfo,/dataMode:\s*'SYNTHETIC'/);
 assert.match(buildInfo,/scientificParity:\s*'EXTERNAL_ORACLE_PARITY_PENDING'/);
 

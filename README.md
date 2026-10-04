@@ -211,6 +211,7 @@ npm run e2e
 npm run build
 npm run verify:fixtures
 npm run release:check
+npm run release:verify
 ```
 
 ## Testing
@@ -224,7 +225,7 @@ Tier-A coverage is authored across:
 - `tests/fixtures/` — Cadre A/B/C/Invalid Reference
 - `e2e/` — blinding, recovery, two-tab CAS, offline workflow, update safety, hostile input/reset paths, demo and mobile/accessibility checks
 
-M03/M04 authoritative external golden fixtures remain intentionally blocked by `EXTERNAL_ORACLE_PARITY_PENDING` rather than fabricated. The release guard also requires Node 24 and a fully resolved lockfile; it cannot report a competition-release PASS from the current bootstrap lock.
+M03/M04 authoritative external golden fixtures remain intentionally blocked by `EXTERNAL_ORACLE_PARITY_PENDING` rather than fabricated. `npm run check` is the core local verification command; `npm run release:verify` adds the complete Playwright browser/offline suite.
 
 ## Repository history / release gates
 
@@ -234,7 +235,7 @@ The repository preserves additive Git history. Tags are created only for gates w
 - `git tag --list`
 - `docs/test-evidence.md`
 
-The existing verified tags are V0.0/V0.1-era tags. Later gates must not be tagged until their required Node 24/npm/browser commands actually pass.
+Verified gates currently span `gate-v0.0-calculation` through `gate-v0.8`, followed by `v0.9.0-rc` and `v1.0.0`. The existing V1 tag remains immutable; subsequent repairs are prepared as a future patch release.
 
 ## Limitations
 

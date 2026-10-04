@@ -25,7 +25,8 @@ test('A01, A02, A04, A07 and A08: labelled controls, errors, focus, blinding, an
   await expect.poll(() => input.evaluate(element => getComputedStyle(element).outlineWidth)).not.toBe('0px');
   await expect(input).toHaveCSS('min-height', '44px');
 
-  await page.getByRole('button', { name: 'Reset demo' }).click();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Reset all local demo data' }).click();
   await loadCadreCFastDemo(page);
   await expect(page.locator('body')).not.toContainText('95.8');
   await expect(page.locator('[aria-label*="Round 1" i]')).toHaveCount(0);
@@ -44,7 +45,8 @@ test('A03: keyboard-only activation reaches workflow controls without a focus tr
   await page.keyboard.press('Enter');
   await expect(page.getByText('1/10 recorded')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Reset demo' }).focus();
+  page.once('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Reset all local demo data' }).focus();
   await page.keyboard.press('Enter');
   await tabTo(page, 'button:has-text("Run 90-sec Demo")');
   await page.keyboard.press('Enter');

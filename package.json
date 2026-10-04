@@ -1,7 +1,7 @@
 {
   "name": "tumbuhguard-standardize",
   "private": true,
-  "version": "0.9.0",
+  "version": "1.0.1",
   "type": "module",
   "engines": {
     "node": ">=24 <25"
@@ -19,6 +19,7 @@
     "seed:demo": "tsx scripts/create-demo-seed.ts",
     "release:check": "tsx scripts/release-check.ts",
     "check": "npm run test:smoke && npm run typecheck && npm run lint && npm test && npm run build && npm run verify:fixtures && npm run release:check",
+    "release:verify": "npm run check && npm run e2e",
     "lint": "tsx scripts/lint-source.ts",
     "e2e": "playwright test",
     "test:smoke": "node scripts/domain-smoke.mjs && node scripts/static-smoke.mjs"

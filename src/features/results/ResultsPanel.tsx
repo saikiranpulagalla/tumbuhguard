@@ -11,6 +11,7 @@ export function ResultsPanel({ session, onRemediate, onClose }: { session: Sessi
   const r=session.result!;
   const remediation=deriveRemediation(session);
   const evidenceSummary=summarizeEvidence(session);
+  const verdictWithheld=!r.protocolValidity.valid;
   const needsRemediation=!r.protocolValidity.valid || !r.precisionPass || !r.referenceValid || r.referencePass===false || remediation.length>0;
   const tabs: readonly {id:EvidenceTab;label:string}[]=[
     {id:'MEASUREMENTS',label:'Measurements'}, {id:'OBSERVATION',label:'Observation'}, {id:'EQUIPMENT',label:'Equipment'}, {id:'PROTOCOL',label:'Protocol'},
@@ -18,10 +19,10 @@ export function ResultsPanel({ session, onRemediate, onClose }: { session: Sessi
   return <section className="panel" aria-labelledby="results-title">
     <div className="panel-heading"><div><span className="kicker">Screen 6 · Results / Evidence</span><h2 id="results-title">Standardization evidence</h2></div><span className="revision">revision {session.revision}</span></div>
     <div className="metrics">
-      <MetricCard label="Trainee repeatability TEM" value={`${r.precisionTEM.toFixed(3)} cm`} status={!r.protocolValidity.valid?'QUANTITATIVE METRIC ONLY':r.precisionPass?'PASS':'NEEDS RE-STANDARDIZATION'} detail={`strict raw threshold < ${session.protocolSnapshot.precisionThreshold} cm`} tone={!r.protocolValidity.valid?'fail':r.precisionPass?'pass':'fail'}/>
-      <MetricCard label="Reference repeatability TEM" value={`${r.referencePrecisionTEM.toFixed(3)} cm`} status={r.referenceValid?'REFERENCE VALID':'REFERENCE INVALID'} detail={`reference validity < ${session.protocolSnapshot.expertPrecisionThreshold} cm`} tone={r.referenceValid?'pass':'fail'}/>
+      <MetricCard label="Trainee repeatability TEM" value={`${r.precisionTEM.toFixed(3)} cm`} status={verdictWithheld?'QUANTITATIVE METRIC ONLY':r.precisionPass?'PASS':'NEEDS RE-STANDARDIZATION'} detail={`strict raw threshold < ${session.protocolSnapshot.precisionThreshold} cm`} tone={verdictWithheld?'blocked':r.precisionPass?'pass':'fail'}/>
+      <MetricCard label="Reference repeatability TEM" value={`${r.referencePrecisionTEM.toFixed(3)} cm`} status={verdictWithheld?'QUANTITATIVE METRIC ONLY':r.referenceValid?'REFERENCE VALID':'REFERENCE INVALID'} detail={verdictWithheld?'Overall verdict withheld due to protocol deviation.':`reference validity < ${session.protocolSnapshot.expertPrecisionThreshold} cm`} tone={verdictWithheld?'blocked':r.referenceValid?'pass':'fail'}/>
       {r.referenceValid && r.referenceTEM !== null
-        ? <MetricCard label="Reference agreement TEM" value={`${r.referenceTEM.toFixed(3)} cm`} status={r.referencePass?'PASS':'NEEDS RE-STANDARDIZATION'} detail={`strict raw threshold < ${session.protocolSnapshot.referenceThreshold} cm`} tone={r.referencePass?'pass':'fail'}/>
+        ? <MetricCard label="Reference agreement TEM" value={`${r.referenceTEM.toFixed(3)} cm`} status={verdictWithheld?'QUANTITATIVE METRIC ONLY':r.referencePass?'PASS':'NEEDS RE-STANDARDIZATION'} detail={verdictWithheld?'Overall verdict withheld due to protocol deviation.':`strict raw threshold < ${session.protocolSnapshot.referenceThreshold} cm`} tone={verdictWithheld?'blocked':r.referencePass?'pass':'fail'}/>
         : <MetricCard label="Reference agreement" value="Unavailable" status="WITHHELD" detail="Reference-measurer repeatability did not meet the selected protocol profile." tone="blocked"/>}
       <MetricCard label="Directional difference" value={r.signedDifference===null?'Withheld':`${r.signedDifference>=0?'+':''}${r.signedDifference.toFixed(3)} cm`} status="DESCRIPTIVE ONLY" detail="Signed mean difference can cancel; it is not a substitute for agreement." />
     </div>

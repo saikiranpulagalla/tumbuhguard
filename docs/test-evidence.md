@@ -350,3 +350,13 @@ On 2026-10-04, `npm audit` identified Vite `7.1.7` (high) and Vitest `4.0.0` / t
 Under Node `v24.19.0`, clean `npm ci`, typecheck, lint, three consecutive full unit suites, production build, and the declared E2E command passed. The final clean RC clone repeated `npm ci`, typecheck, lint, unit, build, and a serial zero-retry 20-test browser/offline/hostile/demo subset using system Edge. The production build remained approximately `409 kB` JavaScript (`126 kB` gzip), `10.60 kB` CSS, and a nine-entry PWA precache.
 
 See `docs/final-hostile-audit.md` for H01–H20 evidence, dependency reachability classification, and the retained external-oracle boundary.
+
+## Post-V1 targeted repair status
+
+The immutable `v1.0.0` tag remains unchanged. A targeted local repair pass
+identified and corrected lineage sibling creation, evidence readiness/locking,
+protocol-invalid result presentation, persisted workflow horizons, timestamp
+and observation/remediation structure, destructive reset wording, stale-tab
+reset UX, and application release metadata. These changes are candidates for a
+future patch release only after a new complete verification run. The exact
+external scientific boundary remains `EXTERNAL_ORACLE_PARITY_PENDING`.
