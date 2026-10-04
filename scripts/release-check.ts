@@ -9,9 +9,9 @@ const required = [
   'README.md','package.json','package-lock.json','src/App.tsx','src/domain/calculation/tem.ts',
   'src/domain/session/transition.ts','src/data/repositories/session-repository.ts','public/manifest.webmanifest',
   'public/icons/icon.svg','public/demo/demo-seed.json','docs/claims-matrix.md','docs/protocol-sources.md',
-  'docs/test-evidence.md','docs/demo-script.md','docs/judge-qa.md','e2e/blinded-round.spec.ts',
+  'docs/release-v1.0.1.md','e2e/blinded-round.spec.ts',
   'e2e/offline.spec.ts','e2e/recovery.spec.ts','e2e/concurrency.spec.ts','e2e/update.spec.ts','e2e/hostile.spec.ts','e2e/accessibility.spec.ts',
-  'docs/hostile-audit.md','scripts/domain-smoke.mjs','scripts/static-smoke.mjs',
+  'scripts/domain-smoke.mjs','scripts/static-smoke.mjs',
 ];
 for (const path of required) await access(path);
 

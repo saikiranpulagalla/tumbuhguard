@@ -206,7 +206,6 @@ The Home screen includes **Run 90-sec Demo**. It loads the deterministic Cadre C
 7. inspect Measurements / Observation / Equipment / Protocol evidence
 8. create a linked re-standardization session
 
-See `docs/demo-script.md` for the judge script.
 
 ## Local development
 
@@ -255,7 +254,9 @@ The repository preserves additive Git history. Tags are created only for gates w
 
 - `git log --oneline --decorate --graph --all`
 - `git tag --list`
-- `docs/test-evidence.md`
+- `docs/release-v1.0.1.md`
+- `docs/claims-matrix.md`
+- `docs/protocol-sources.md`
 
 Verified gates span `gate-v0.0-calculation` through `gate-v0.8`, followed by `v0.9.0-rc`, `v1.0.0` and the current verified patch release **`v1.0.1`**.
 
