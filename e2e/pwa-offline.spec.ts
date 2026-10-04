@@ -48,6 +48,7 @@ test('O01-O07 and O10: warm-cached production workflow remains usable offline', 
   const requests: string[] = [];
   page.on('request', request => requests.push(request.url()));
   await warmCache(page);
+  const applicationOrigin = new URL(page.url()).origin;
 
   await context.setOffline(true);
   await page.reload();
@@ -66,7 +67,7 @@ test('O01-O07 and O10: warm-cached production workflow remains usable offline', 
   const reopened = await context.newPage();
   await reopened.goto('/');
   await expect(reopened.getByRole('heading', { name: 'Standardization setup' })).toBeVisible();
-  expect(requests.filter(url => !url.startsWith('http://127.0.0.1:3001'))).toEqual([]);
+  expect(requests.filter(url => new URL(url).origin !== applicationOrigin)).toEqual([]);
 });
 
 test('O08: a waiting worker does not reload an active assessment', async ({ page }) => {
