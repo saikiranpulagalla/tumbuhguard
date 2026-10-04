@@ -31,6 +31,14 @@ async function fileFor(pathname) {
 const server = http.createServer(async (request, response) => {
   if (!request.url || !['GET', 'HEAD'].includes(request.method ?? '')) { response.writeHead(405).end(); return; }
   const { pathname } = new URL(request.url, 'http://127.0.0.1');
+  // This script exists only for the production-browser update-safety test. It
+  // deliberately omits skipWaiting so it remains waiting behind the generated
+  // production worker instead of forcing an active assessment to reload.
+  if (pathname === '/__e2e-waiting-sw.js') {
+    response.writeHead(200, { 'Content-Type': 'text/javascript; charset=utf-8', 'X-Content-Type-Options': 'nosniff' });
+    response.end("self.addEventListener('install', () => {}); self.addEventListener('activate', () => {});");
+    return;
+  }
   const resolved = await fileFor(pathname);
   if (!resolved.file) { response.writeHead(resolved.status ?? 404).end(); return; }
   const headers = { 'Content-Type': mime.get(path.extname(resolved.file)) ?? 'application/octet-stream', 'X-Content-Type-Options': 'nosniff' };
