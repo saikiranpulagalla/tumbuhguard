@@ -81,7 +81,13 @@ test('N03 concurrent tabs create exactly one active workflow head', async ({ con
     b.getByRole('button', { name: 'Start Assessment' }).click(),
   ]);
   await expect.poll(() => activeNonTemplateCount(a)).toBe(1);
-  await expect(a.getByRole('heading', { name: 'Standardization setup' }).or(b.getByRole('heading', { name: 'Standardization setup' }))).toBeVisible();
+  await expect.poll(async () => {
+    const [aVisible, bVisible] = await Promise.all([
+      a.getByRole('heading', { name: 'Standardization setup' }).isVisible().catch(() => false),
+      b.getByRole('heading', { name: 'Standardization setup' }).isVisible().catch(() => false),
+    ]);
+    return Number(aVisible) + Number(bVisible);
+  }).toBe(1);
 });
 
 test('B08 reset rejects a stale-tab write without resurrecting the deleted session', async ({ context }) => {
