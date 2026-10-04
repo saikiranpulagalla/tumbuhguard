@@ -342,3 +342,11 @@ Accessibility browser checks passed for labelled inputs and error association, k
 One persistence recovery defect was found by the real offline reopen journey: after linked re-standardization, the parent session could have a newer timestamp than its active child, causing recovery to choose the parent. Child creation now assigns the child a deterministic timestamp one millisecond after the parent audit update. The repository regression asserts that ordering, and offline reopen now restores the new child setup session.
 
 Final clean-clone verification was repeated from commit `cfd3d19` under Node `v24.19.0`: `npm ci`, typecheck, lint, unit tests, and production build all passed. The fresh clone then ran B00–B12 (`15 passed` in `22.3s`) and O01–O10 (`3 passed` in `14.6s`) with Microsoft Edge on an isolated loopback port. The offline request assertion now derives the served application origin rather than assuming port `3001`, so the test remains valid for isolated release verification.
+
+## Phase 11 — RC dependency triage and hostile verification
+
+On 2026-10-04, `npm audit` identified Vite `7.1.7` (high) and Vitest `4.0.0` / transitive `@vitest/mocker` (critical/moderate). The direct packages were updated to the compatible non-major fixes, Vite `7.3.6` and Vitest `4.1.11`. The existing React testing library's required DOM peer was made explicit as `@testing-library/dom` `10.4.2`. Final `npm audit` reported `0 vulnerabilities`.
+
+Under Node `v24.19.0`, clean `npm ci`, typecheck, lint, three consecutive full unit suites, production build, and the declared E2E command passed. The final clean RC clone repeated `npm ci`, typecheck, lint, unit, build, and a serial zero-retry 20-test browser/offline/hostile/demo subset using system Edge. The production build remained approximately `409 kB` JavaScript (`126 kB` gzip), `10.60 kB` CSS, and a nine-entry PWA precache.
+
+See `docs/final-hostile-audit.md` for H01–H20 evidence, dependency reachability classification, and the retained external-oracle boundary.
